@@ -1,0 +1,1679 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="firebase-config.js"></script>
+<script>if(window.CELLGRAPH_FIREBASE===undefined) window.CELLGRAPH_FIREBASE=null;</script>
+<script src="login.js"></script>
+</head><body>
+<title>셀 데이터 그래프 메이커</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: lab-instrument workbench — slim control rail on the left, Excel-faithful figure sheets on the right. */
+:root{
+  --bg:#eef1f3; --panel:#ffffff; --ink:#1b2328; --ink2:#4d5a63; --muted:#7c8a93;
+  --line:#d5dce1; --line2:#e6ebee; --accent:#0f5c78; --accent-ink:#ffffff; --accent-soft:#e1eef3;
+  --warn:#9a5b00; --sheet:#f7f9fa;
+  --ui:'IBM Plex Sans KR', 'Malgun Gothic','Apple SD Gothic Neo', system-ui, sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#13181b; --panel:#1b2226; --ink:#e4eaed; --ink2:#b3c0c7; --muted:#8696a0;
+  --line:#2f3a40; --line2:#263035; --accent:#5fb3d3; --accent-ink:#0b1a20; --accent-soft:#1d3440;
+  --warn:#e0a248; --sheet:#171d20; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#13181b; --panel:#1b2226; --ink:#e4eaed; --ink2:#b3c0c7; --muted:#8696a0;
+  --line:#2f3a40; --line2:#263035; --accent:#5fb3d3; --accent-ink:#0b1a20; --accent-soft:#1d3440;
+  --warn:#e0a248; --sheet:#171d20; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.homebtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:12.5px;font-weight:600;color:var(--ink2);border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 11px 5px 9px;white-space:nowrap}
+.homebtn:hover{color:var(--accent);border-color:var(--accent)}
+.homebtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.homebtn svg{width:15px;height:15px;flex:none}
+.appnav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.homebtn.swap{color:var(--accent);border-color:var(--accent)}
+.homerow{display:flex;justify-content:flex-end;width:100%;margin-bottom:-4px}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:14px;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere}
+.wrap{padding-inline:16px;padding-block:14px 40px;max-width:1800px;margin:0 auto;display:grid;gap:12px}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.brand .mascot{width:76px;height:76px;flex:none;display:block;margin-block:-8px}
+@media (max-width:560px){.brand .mascot{width:60px;height:60px;margin-block:-4px}}
+.brand .bt{min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.brand h1{font-size:19px;margin:0;font-weight:700;letter-spacing:-.01em}
+.brand span{color:var(--muted);font-size:12.5px}
+.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:var(--r);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08);color:var(--accent-ink)}
+.btn.sm{font-size:12px;padding:4px 8px}
+.btn:focus-visible,.seg button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.filebar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px}
+.filebar .src{font-size:12.5px;color:var(--ink2);margin-right:4px}
+.chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;display:inline-flex;gap:6px;align-items:center;background:var(--sheet)}
+.chip b{font-weight:600}
+.chip .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent)}
+.chip.none{color:var(--muted)}
+.drop{outline:2px dashed var(--accent);outline-offset:4px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-weight:600;font-size:14px;background:none;border:none;border-bottom:3px solid transparent;padding:8px 14px;color:var(--ink2);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.main{display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+aside.rail{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;gap:14px;position:sticky;top:env(safe-area-inset-top,0px);max-height:calc(100vh - 20px);overflow:auto}
+@media (max-width:900px){aside.rail{position:static;max-height:none}}
+.fld{display:grid;gap:5px}
+.lbl{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+select,input[type=text],input[type=number],textarea{font:inherit;font-size:13px;color:var(--ink);background:var(--sheet);border:1px solid var(--line);border-radius:5px;padding:5px 7px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:52px;font-size:12px}
+input[type=number]{font-family:var(--mono);font-size:12px}
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{flex:1;font:inherit;font-size:12.5px;border:none;background:var(--sheet);color:var(--ink2);padding:6px 4px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.row{display:flex;gap:8px;align-items:center}
+.row label{display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer}
+.groups{display:grid;gap:4px;max-height:420px;overflow:auto;padding-right:2px}
+.grp{border:1px solid var(--line2);border-radius:5px;background:var(--sheet)}
+.grp>.gh{display:flex;align-items:center;gap:6px;padding:4px 6px}
+.grp>.gh .nm{flex:1;min-width:0;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp>.gh .cnt{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.grp .tg{border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 2px}
+input[type=color]{width:24px;height:22px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer;flex:none}
+.cells{display:grid;gap:3px;padding:2px 6px 6px 28px}
+.cells .c{display:flex;align-items:center;gap:6px}
+.cells .sw{width:10px;height:10px;border-radius:50%;border:2px solid;flex:none;background:#fff}
+.cells input[type=text]{font-size:12px;padding:2px 5px}
+details.ax{border:1px solid var(--line2);border-radius:5px;background:var(--sheet)}
+details.ax>summary{cursor:pointer;padding:6px 8px;font-size:12.5px;font-weight:600}
+details.ax .in{padding:4px 8px 8px;display:grid;gap:6px}
+.g3{display:grid;grid-template-columns:28px repeat(3,minmax(0,1fr));gap:4px;align-items:center;font-size:11px;color:var(--muted)}
+.g3 span{font-family:var(--mono)}
+.hint{font-size:11.5px;color:var(--muted)}
+.sheets{display:grid;gap:18px;min-width:0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.toolbar .meta{font-size:12.5px;color:var(--ink2)}
+.banner{font-size:12.5px;background:var(--accent-soft);border:1px solid var(--line);color:var(--ink);border-radius:var(--r);padding:8px 10px}
+section.set{display:grid;gap:8px;min-width:0}
+section.set>h3{margin:0;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+section.set>h3 .dot{width:12px;height:12px;border-radius:3px;flex:none}
+section.set>h3 small{font-weight:400;color:var(--muted);font-size:12px}
+.charts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:12px}
+.charts.vp{grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr))}
+figure.card{margin:0;background:#fff;border:1px solid var(--line);border-radius:4px;position:relative;min-width:0}
+figure.card svg{display:block;width:100%;height:auto}
+figure.card .acts{position:absolute;right:6px;top:6px;display:flex;gap:4px;opacity:0;transition:opacity .12s}
+figure.card:hover .acts,figure.card:focus-within .acts{opacity:1}
+@media (hover:none){figure.card .acts{opacity:1}}
+figure.card .acts button{font:inherit;font-size:11px;border:1px solid #c9d1d6;background:#fff;color:#22313a;border-radius:4px;padding:2px 7px;cursor:pointer}
+figure.card .acts button:hover{border-color:#0f5c78;color:#0f5c78}
+.tip{position:absolute;pointer-events:none;background:#1b2328;color:#fff;font-size:11.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:5;font-family:var(--ui);box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.tip b{font-weight:600}
+.tip .v{font-family:var(--mono)}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r);background:var(--panel)}
+.modal{position:fixed;inset:0;background:rgba(10,16,20,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal .box{background:var(--panel);color:var(--ink);border-radius:8px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:16px;display:grid;gap:10px}
+.modal h2{margin:0;font-size:16px}
+.modal textarea{min-height:220px;font-family:var(--mono);font-size:11.5px;white-space:pre}
+.modal img{max-width:100%;border:1px solid var(--line);background:#fff}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;z-index:60;max-width:calc(100% - 32px)}
+.busy{font-size:12.5px;color:var(--warn)}
+button.x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:0 3px;border-radius:3px;flex:none}
+button.x:hover{color:#c62828;background:var(--line2)}
+.fgrp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;padding-right:8px;margin-right:2px;border-right:1px solid var(--line2)}
+.toast .tact{margin-left:12px;font:inherit;font-weight:600;background:none;border:1px solid currentColor;color:inherit;border-radius:4px;padding:1px 8px;cursor:pointer}
+.loadpair{display:flex;gap:8px;flex-wrap:wrap}
+.btn2{padding:6px 12px 6px 10px;gap:9px;text-align:left;line-height:1.2}
+.btn2 b{display:block;font-weight:600;font-size:13px}
+.btn2 small{display:block;font-size:11px;opacity:.82;font-weight:400}
+.btn2 .ic{font-size:17px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none}
+.btn2.primary .ic{background:rgba(255,255,255,.18)}
+.btn2.add{border:1.5px dashed var(--accent);color:var(--accent);background:var(--accent-soft)}
+.btn2.add .ic{background:var(--accent);color:var(--accent-ink)}
+.btn2.add:hover{border-style:solid}
+.cloud{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);white-space:nowrap}
+.cloud .cd{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.cloud.saved .cd{background:#2e7d32}
+.cloud.saving .cd,.cloud.loading .cd{background:var(--accent);animation:pulse 1s infinite alternate}
+.cloud.full .cd,.cloud.error .cd{background:#c62828}
+@keyframes pulse{to{opacity:.3}}
+.lblrow{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.allbtns{display:flex;gap:4px}
+.allbtns .btn{padding:2px 7px;font-size:11px}
+.txtgrid{display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr));gap:4px 6px;align-items:center;font-size:12px}
+.txtgrid>span:nth-child(-n+4){font-size:10.5px;color:var(--muted)}
+.txtgrid input{padding:3px 5px;font-size:12px}
+.acct{display:flex;align-items:center;gap:8px}
+.acct .who{font-size:12.5px;color:var(--ink2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct .btn.login{border-color:var(--accent);color:var(--accent);font-weight:600}
+.loginbox{display:grid;gap:10px;min-width:min(340px,80vw)}
+.loginbox input{width:100%}
+.loginbox .or{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}
+.loginbox .or::before,.loginbox .or::after{content:"";flex:1;border-top:1px solid var(--line)}
+.loginbox .err{color:#c62828;font-size:12.5px;min-height:1em}
+.loginbox .links{display:flex;justify-content:space-between;gap:8px;font-size:12.5px}
+.loginbox .links a{color:var(--accent);cursor:pointer}
+footer.copy{margin-top:20px;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .brand .mascot{filter:invert(1)} }
+:root[data-theme="dark"] .brand .mascot{filter:invert(1)}
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="homerow"><nav class="appnav" aria-label="앱 이동"><a class="homebtn swap" href="cellport.html" title="셀 데이터 변환기: 충방전기 원본(.cex)을 엑셀·CSV로 변환"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h9"/><path d="M8.5 4.5 12 8l-3.5 3.5"/></svg>셀 데이터 변환기</a><a class="homebtn" href="index.html" title="Cell·Data Lab 포트폴리오로 돌아가기"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5"/><path d="M4 6.5V13h3v-3.2h2V13h3V6.5"/></svg>Cell·Data Lab 홈</a></nav></div>
+    <div class="brand"><img class="mascot" src="data:image/png;base64,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" alt="" width="76" height="76"><div class="bt"><h1>셀 데이터 그래프 메이커</h1><span>Full cell 엑셀 → Cycle performance · Voltage profile</span></div></div>
+    <div class="loadpair" role="group" aria-label="엑셀 파일 불러오기">
+      <button class="btn btn2 primary" id="bOpen" type="button" title="지금 불러온 데이터를 모두 지우고 새 파일로 바꿉니다"><span class="ic" aria-hidden="true">⟲</span><span><b>새 파일로 바꾸기</b><small>기존 데이터는 지워짐</small></span></button>
+      <button class="btn btn2 add" id="bAdd" type="button" title="지금 데이터는 그대로 두고 파일을 더 불러옵니다"><span class="ic" aria-hidden="true">＋</span><span><b>파일 추가하기</b><small>기존 데이터에 이어서</small></span></button>
+    </div>
+    <button class="btn" id="bPaste" type="button">엑셀에서 붙여넣기</button>
+    <button class="btn" id="bSample" type="button">예시 데이터</button>
+    <div class="acct" id="acct" hidden></div>
+    <input type="file" id="fileIn" multiple hidden>
+    <input type="file" id="fileAdd" multiple hidden>
+  </header>
+  <div class="filebar" id="filebar"></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tCyc" aria-selected="true" type="button">Cycle performance</button>
+    <button role="tab" id="tVp" aria-selected="false" type="button">Voltage profile</button>
+  </div>
+  <div class="main">
+    <aside class="rail" id="rail"></aside>
+    <div class="sheets" id="sheets"></div>
+  </div>
+  <footer class="copy">© 2026 L.J.N. All rights reserved · 무단 복제·수정·배포 금지</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script type="application/json" id="sampleData">{"sources":[]}</script>
+<script>
+// ---- shared parsing logic (browser + node) ----
+(function(root){
+const clean = s => (s==null?'':String(s)).replace(/­/g,'').replace(/\s+/g,' ').trim();
+const isNum = v => typeof v==='number' && isFinite(v);
+function toGrid(X, ws){
+  if(!ws || !ws['!ref']) return [];
+  const r = X.utils.decode_range(ws['!ref']); r.s.r=0; r.s.c=0;
+  return X.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:true,range:X.utils.encode_range(r)});
+}
+const get=(g,r,c)=> (g[r]&&g[r][c]!==undefined)?g[r][c]:null;
+// walk left on a row until a non-empty text (merged header behaviour)
+function leftText(g,r,c,stopC){ for(let k=c;k>=(stopC||0);k--){const v=clean(get(g,r,k)); if(v) return {v,c:k};} return null; }
+function groupKey(name){ return clean(name).replace(/\s*[#№]\s*\d+\s*$/,'').replace(/\s*-\s*\d+\s*$/,'').trim() || clean(name); }
+
+// ---------- CYCLE sheet: Chg | Dis | Effi | Ret blocks ----------
+function detectCycle(g){
+  let hr=-1;
+  for(let r=0;r<Math.min(g.length,40)&&hr<0;r++){ const row=g[r]||[]; let n=0; for(const v of row){ if(/^chg|^charge|충전/i.test(clean(v))) n++; } if(n>=1){ for(const v of row){ if(/^dis|방전/i.test(clean(v))) {hr=r;break;} } } }
+  if(hr<0) return null;
+  const row=g[hr]; const cells=[];
+  const isChg=t=>/^chg|^charge|충전/i.test(t), isDis=t=>/^dis|방전/i.test(t);
+  const hasData=c=>{ for(let r=hr+1;r<Math.min(g.length,hr+400);r++) if(isNum(get(g,r,c))) return true; return false; };
+  // among several unit columns (mAh/g · mAh/cm2 · mAh) use mAh/g if it has numbers, else plain mAh, else any with numbers
+  const pick=cols=>{ if(cols.length===1) return cols[0]; const h=c=>clean(row[c]).toLowerCase();
+    const g1=cols.find(c=>/mah\s*\/\s*g/.test(h(c))&&hasData(c)); if(g1!=null) return g1;
+    const m1=cols.find(c=>/\(\s*mah\s*\)|mah\s*$/.test(h(c))&&!/cm/.test(h(c))&&hasData(c)); if(m1!=null) return m1;
+    const any=cols.find(hasData); return any!=null?any:cols[0]; };
+  for(let c=0;c<row.length;c++){
+    const h=clean(row[c]);
+    if(!isChg(h)) continue;
+    let e=c; while(e+1<row.length&&isChg(clean(row[e+1]))) e++;
+    if(!isDis(clean(row[e+1]))) continue;
+    let d=e+1; while(d+1<row.length&&isDis(clean(row[d+1]))) d++;
+    const chgCols=[]; for(let k=c;k<=e;k++) chgCols.push(k); const disCols=[]; for(let k=e+1;k<=d;k++) disCols.push(k);
+    const blk={chg:pick(chgCols),dis:pick(disCols),eff:null,ret:null};
+    let last=d;
+    for(let k=d+1;k<=d+2;k++){ const t=clean(row[k]); if(/^eff|효율/i.test(t)){ blk.eff=k; last=k; } else if(/^ret|유지/i.test(t)){ blk.ret=k; last=k; } }
+    // name: nearest text above (walking left inside the block span)
+    let name=null; for(let r=hr-1;r>=0&&!name;r--){ for(let k=c;k>=Math.max(0,c-3)&&!name;k--){ if(k<c && isChg(clean(get(g,hr,k)))) break; const v=clean(get(g,r,k)); if(v && !isNum(get(g,r,k))) name=v; } }
+    // experiment header (merged, e.g. "1차 구동 (N/P=1.13)") — topmost text row walking left
+    let exp=null; for(let r=0;r<hr-1&&!exp;r++){ const t=leftText(g,r,c); if(t && !/^\d+$/.test(t.v) && t.v.length>3 && !/^(binder|electrolyte|ch\.?|channel|lot\.?)$/i.test(t.v)) exp=t.v; }
+    blk.name=name||('Cell '+(cells.length+1)); blk.exp=exp; blk.first=c;
+    cells.push(blk); c=last;
+  }
+  if(!cells.length) return null;
+  // cycle column: column left of first block with most integer values below header
+  let best=-1,bestN=0; const c0=cells[0].first;
+  for(let c=0;c<c0;c++){ let n=0; for(let r=hr+1;r<g.length;r++){ const v=get(g,r,c); if(isNum(v)&&Math.round(v)===v) n++; } if(n>bestN){bestN=n;best=c;} }
+  const out=[];
+  for(const b of cells){
+    const pts=[]; let firstDis=null;
+    for(let r=hr+1;r<g.length;r++){
+      let cy = best>=0? get(g,r,best):null;
+      if(!isNum(cy)) continue;
+      const ch=get(g,r,b.chg), di=get(g,r,b.dis);
+      if(!isNum(di) && !isNum(ch)) continue;
+      let ef = b.eff!=null? get(g,r,b.eff):null, re = b.ret!=null? get(g,r,b.ret):null;
+      if(!isNum(ef) && isNum(ch)&&isNum(di)&&ch>0) ef=di/ch*100;
+      if(isNum(di) && firstDis==null) firstDis=di;
+      if(!isNum(re) && isNum(di) && firstDis) re=di/firstDis*100;
+      pts.push([cy, isNum(ch)?ch:null, isNum(di)?di:null, isNum(ef)?ef:null, isNum(re)?re:null]);
+    }
+    if(pts.length) out.push({name:b.name, exp:b.exp, group:groupKey(b.name), pts});
+  }
+  return out.length? {kind:'cycle', cells:out, headerRow:hr} : null;
+}
+
+// ---------- PROFILE sheet: (capacity … Volt) blocks — old 2-column pairs or 6-column lab blocks ----------
+function detectProfile(g){
+  const isCap=t=>/mah|capacity|용량/i.test(t)&&!/cm\s*2|cm²/i.test(t), isVolt=t=>/volt|^v$|\(v\)|전압/i.test(t);
+  let ur=-1;
+  for(let r=0;r<Math.min(g.length,40);r++){ const row=(g[r]||[]).map(clean); if(row.some(isCap)&&row.some(isVolt)) ur=r; } // last header row = the unit row
+  if(ur<0) return null;
+  const row=g[ur];
+  let lotRow=-1;
+  for(let r=0;r<ur;r++){ for(let c=0;c<4;c++){ if(/^lot/i.test(clean(get(g,r,c)))) lotRow=r; } }
+  // label row: the nearest row above the units with text in the data area (skips "Capacity / Current" rows)
+  let labRow=ur-1;
+  for(let r=ur-1;r>=0;r--){ const t=(g[r]||[]).slice(1).map(clean).filter(Boolean); if(t.length&&!t.every(v=>/^(capacity|current|time|volt)$/i.test(v))){ labRow=r; break; } }
+  if(lotRow<0){ for(let r=labRow-1;r>=0;r--){ if((g[r]||[]).some(v=>clean(v))){lotRow=r;break;} } }
+  const hasData=c=>{ for(let r=ur+1;r<Math.min(g.length,ur+400);r++) if(isNum(get(g,r,c))) return true; return false; };
+  const curves=[]; let start=0;
+  for(let v=0;v<row.length;v++){
+    if(!isVolt(clean(row[v]))) continue;
+    const caps=[]; for(let k=start;k<v;k++){ const t=clean(row[k]); if(isCap(t)) caps.push(k); }
+    const blockStart=start; start=v+1;
+    if(!caps.length) continue;
+    const c=caps.find(k=>/\/\s*g/i.test(clean(row[k]))&&hasData(k)) ?? caps.find(hasData) ?? caps[0];
+    const lab=leftText(g,labRow,caps[0],Math.max(0,blockStart-1));
+    const cell=lotRow>=0? leftText(g,lotRow,caps[0]):null;
+    const segs=[]; let seg=[]; let prevX=null;
+    for(let r=ur+1;r<g.length;r++){
+      const x=get(g,r,c), y=get(g,r,v);
+      if(!isNum(x)||!isNum(y)){ continue; }
+      if(prevX!=null && x < prevX - Math.max(2, prevX*0.2)){ if(seg.length) segs.push(seg); seg=[]; }
+      seg.push([x,y]); prevX=x;
+    }
+    if(seg.length) segs.push(seg);
+    if(!segs.length) continue;
+    const cname = cell? cell.v : 'Cell';
+    curves.push({cell:cname, group:groupKey(cname), label: lab? lab.v : ('col '+c), segs});
+  }
+  if(!curves.length) return null;
+  return {kind:'profile', curves};
+}
+function detect(X, ws){ const g=toGrid(X,ws); return detectCycle(g) || detectProfile(g); }
+root.BatParse={toGrid,detect,detectCycle,detectProfile,groupKey,clean};
+})(typeof window!=='undefined'?window:globalThis);
+
+</script>
+<script>
+// CEX (battery cycler binary) → rows. Works in the browser and in node.
+(function(root){
+'use strict';
+const STEP_NAMES={0x70:'Rest',0x76:'CC_Chg',0x05:'CV_Chg',0x75:'CC_DChg'};
+const HEADER=['time','elapsed_s','voltage_v','current_ma','capacity_mAh','energy_mWh','dQ_dV_mAh_V'];
+
+function isMarker(u8,o){ const a=u8[o]; return u8[o+1]===a && u8[o+2]===0xff && u8[o+3]===0xff && (a===0xaa||a===0xbb||a===0xcc||a===0xdd); }
+
+function parseCex(buf,opts){
+  opts=opts||{};
+  const u8=new Uint8Array(buf), dv=new DataView(buf instanceof ArrayBuffer?buf:u8.buffer,u8.byteOffset,u8.byteLength);
+  const n=u8.length;
+  // test name and voltage range from the header
+  let name='';
+  { let s=-1; for(let o=0;o<Math.min(n,4096)-4;o++){ if(u8[o]>=0x20&&u8[o]<0x7f){ if(s<0) s=o; } else { if(s>=0&&o-s>=8){ const t=String.fromCharCode(...u8.subarray(s,o)); if(/\d/.test(t)&&/[A-Za-z]/.test(t)){ name=t; break; } } s=-1; } } }
+  let vRange=5; if(n>0x398){ const f=dv.getFloat32(0x394,true); if(f>0.5&&f<=100) vRange=f; }
+  const vScale=vRange/32256;
+  const iScale=(opts.currentRangeMa||10)/32250;
+  // first data marker (type 0x33 or 0x22) on a 16-byte boundary
+  let off=-1;
+  for(let o=0;o+16<=n;o+=16){ if(u8[o]===0xcc&&isMarker(u8,o)){ const t=dv.getUint32(o+4,true); if(t===0x33||t===0x22){ off=o; break; } } }
+  if(off<0) throw new Error('CEX 데이터 영역을 찾지 못했습니다.');
+  const steps=[]; let cur=null, startTs=null, skip=null;
+  for(let o=off;o+16<=n;o+=16){
+    if(isMarker(u8,o)){
+      const typ=dv.getUint32(o+4,true), a=u8[o];
+      if(skip!==null){ if(a===0xbb&&typ===skip) skip=null; continue; }
+      if(a===0xaa){ skip=typ; continue; }
+      if(a===0xcc){
+        if(typ===0x33&&startTs===null) startTs=dv.getUint32(o+12,true);
+        if(typ===0x22){ cur={code:u8[o+8],ts:dv.getUint32(o+12,true),recs:[]}; steps.push(cur); }
+      }
+      continue;
+    }
+    if(skip!==null||!cur) continue;
+    cur.recs.push([dv.getUint32(o,true),dv.getUint16(o+4,true)*vScale,dv.getInt16(o+6,true)*iScale,dv.getFloat32(o+8,true)*1000,dv.getFloat32(o+12,true)*1000]);
+  }
+  if(startTs===null&&steps.length) startTs=steps[0].ts;
+  // cycles: a new cycle starts at the first charge step after a discharge step
+  let cyc=1, sawDis=false;
+  for(const s of steps){
+    if(!s.recs.length){ s.cycle=cyc; s.kind=s.code===0x70?'rest':'other'; continue; }
+    const iMean=s.recs.reduce((a,r)=>a+r[2],0)/s.recs.length;
+    s.kind=s.code===0x70?'rest':(iMean>1e-9?'chg':(iMean<-1e-9?'dis':'other'));
+    if(s.kind==='chg'&&sawDis){ cyc++; sawDis=false; }
+    if(s.kind==='dis') sawDis=true;
+    s.cycle=cyc; s.name=STEP_NAMES[s.code]||('Step_0x'+s.code.toString(16));
+  }
+  steps.forEach((s,i)=>s.index=i+1);
+  return {name,startTs,vRange,currentRangeMa:opts.currentRangeMa||10,steps,cycles:cyc};
+}
+
+// Excel "General" style: at most 11 characters, trailing zeros removed
+function fmtNum(x,d){
+  if(x===null||x===undefined||!isFinite(x)) return '';
+  if(d===undefined){ const ip=Math.floor(Math.abs(x)); d=Math.max(0,10-String(ip).length); }
+  let s=x.toFixed(d); if(s.indexOf('.')>=0) s=s.replace(/0+$/,'').replace(/\.$/,'');
+  if(s==='-0'||s==='') s='0'; return s;
+}
+const KST_OFFSET=9*3600;
+function koTime(epochSec){ // "2026. 8. 28. 오후 12:56:39" in Korea time
+  const d=new Date((epochSec+KST_OFFSET)*1000);
+  const h=d.getUTCHours(), ap=h<12?'오전':'오후', h12=(h%12)||12;
+  return `${d.getUTCFullYear()}. ${d.getUTCMonth()+1}. ${d.getUTCDate()}. ${ap} ${h12}:${String(d.getUTCMinutes()).padStart(2,'0')}:${String(d.getUTCSeconds()).padStart(2,'0')}`;
+}
+
+// rows for the chosen cycles (rest steps are left out, like the reference CSV)
+function buildRows(P,cycleSet,extra){
+  const rows=[]; let t0=null;
+  for(const s of P.steps){
+    if(s.kind==='rest'||!s.recs.length) continue;
+    if(cycleSet&&!cycleSet.has(s.cycle)) continue;
+    let prev=null;
+    for(const r of s.recs){
+      const [t,V,I,Q,E]=r; if(t0===null) t0=t;
+      let dq=null; if(prev){ const dV=V-prev[0]; if(Math.abs(dV)>=0.001) dq=(Q-prev[1])/dV; }
+      prev=[V,Q];
+      const row={time:koTime(P.startTs+Math.floor(t/100)),el:(t-t0)/100,V,I,Q,E,dq,cycle:s.cycle,step:s.index,stepName:s.name};
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+function rowsToCsvText(rows,extra){
+  const head=HEADER.concat(extra?['cycle','step','step_type']:[]);
+  const out=[head.join(',')];
+  for(const r of rows){
+    const a=[r.time,fmtNum(r.el,2),fmtNum(r.V),fmtNum(r.I),fmtNum(r.Q),fmtNum(r.E),r.dq===null?'':fmtNum(r.dq)];
+    if(extra) a.push(String(r.cycle),String(r.step),r.stepName);
+    out.push(a.join(','));
+  }
+  return out.join('\r\n')+'\r\n';
+}
+// CP949 bytes: the text is ASCII except 오전/오후 (and possibly a few letters in names)
+const CP949={'오':[0xbf,0xc0],'전':[0xc0,0xfc],'후':[0xc8,0xc4]};
+function encodeCp949(text){
+  const out=new Uint8Array(text.length*2); let k=0;
+  for(let i=0;i<text.length;i++){ const c=text.charCodeAt(i);
+    if(c<0x80){ out[k++]=c; continue; }
+    const m=CP949[text[i]]; if(m){ out[k++]=m[0]; out[k++]=m[1]; } else out[k++]=0x3f; }
+  return out.subarray(0,k);
+}
+function cycleSummary(P,massMg){
+  const by=new Map();
+  for(const s of P.steps){ if(!s.recs.length||(s.kind!=='chg'&&s.kind!=='dis')) continue;
+    const c=by.get(s.cycle)||{cycle:s.cycle,chg:null,dis:null,chgE:null,disE:null,start:null,end:null};
+    const last=s.recs[s.recs.length-1];
+    if(s.kind==='chg'){ c.chg=last[3]; c.chgE=last[4]; } else { c.dis=last[3]; c.disE=last[4]; }
+    if(c.start===null) c.start=s.recs[0][0]; c.end=last[0];
+    by.set(s.cycle,c); }
+  const list=[...by.values()].sort((a,b)=>a.cycle-b.cycle); let first=null;
+  for(const c of list){ c.eff=(c.chg>0&&c.dis!=null)?c.dis/c.chg*100:null; if(first===null&&c.dis>0) first=c.dis; c.ret=(first&&c.dis!=null)?c.dis/first*100:null;
+    if(massMg>0){ c.chgG=c.chg!=null?c.chg/(massMg/1000):null; c.disG=c.dis!=null?c.dis/(massMg/1000):null; } }
+  return list;
+}
+function parseCycleSpec(spec,max){
+  const set=new Set(); String(spec||'').split(/[,\s]+/).filter(Boolean).forEach(part=>{
+    const m=part.match(/^(\d+)\s*[-~]\s*(\d+)$/); if(m){ let a=+m[1],b=+m[2]; if(a>b)[a,b]=[b,a]; for(let i=a;i<=Math.min(b,max);i++) set.add(i); }
+    else if(/^\d+$/.test(part)){ const v=+part; if(v>=1&&v<=max) set.add(v); } });
+  return set;
+}
+root.Cex={parseCex,buildRows,rowsToCsvText,encodeCp949,cycleSummary,parseCycleSpec,fmtNum,koTime,HEADER};
+})(typeof window!=='undefined'?window:globalThis);
+
+// WRD (WonATech WBCS cycler data file) → the same structure Cex.parseCex returns.
+// Layout: .NET BinaryFormatter (MS-NRBF) file header, then one or more
+// [NRBF DataHeader (column list + DataCount)] + DataCount fixed-layout binary records.
+(function(root){
+'use strict';
+const TICKS_EPOCH=621355968000000000; // .NET ticks at 1970-01-01
+const KST=9*3600;
+
+function Reader(u8,pos){
+  const dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);
+  const td=new TextDecoder('utf-8');
+  const r={pos:pos||0,u8,dv,
+    u8_(){ return u8[r.pos++]; },
+    i8(){ const v=dv.getInt8(r.pos); r.pos+=1; return v; },
+    i16(){ const v=dv.getInt16(r.pos,true); r.pos+=2; return v; },
+    u16(){ const v=dv.getUint16(r.pos,true); r.pos+=2; return v; },
+    i32(){ const v=dv.getInt32(r.pos,true); r.pos+=4; return v; },
+    u32(){ const v=dv.getUint32(r.pos,true); r.pos+=4; return v; },
+    i64(){ const lo=dv.getUint32(r.pos,true), hi=dv.getInt32(r.pos+4,true); r.pos+=8; return hi*4294967296+lo; },
+    u64(){ const lo=dv.getUint32(r.pos,true), hi=dv.getUint32(r.pos+4,true); r.pos+=8; return hi*4294967296+lo; },
+    f32(){ const v=dv.getFloat32(r.pos,true); r.pos+=4; return v; },
+    f64(){ const v=dv.getFloat64(r.pos,true); r.pos+=8; return v; },
+    len7(){ let v=0,s=0,b; do{ b=u8[r.pos++]; v|=(b&0x7f)<<s; s+=7; }while(b&0x80 && s<35); return v; },
+    str(){ const n=r.len7(); const s=td.decode(u8.subarray(r.pos,r.pos+n)); r.pos+=n; return s; },
+    chr(){ const b=u8[r.pos]; const n=b<0x80?1:b<0xe0?2:b<0xf0?3:4; const s=td.decode(u8.subarray(r.pos,r.pos+n)); r.pos+=n; return s; }
+  };
+  return r;
+}
+function prim(r,t){
+  switch(t){
+    case 1: return !!r.u8_(); case 2: return r.u8_(); case 3: return r.chr(); case 5: return r.str();
+    case 6: return r.f64(); case 7: return r.i16(); case 8: return r.i32(); case 9: return r.i64();
+    case 10: return r.i8(); case 11: return r.f32(); case 12: return r.i64(); case 13: { const lo=r.dv.getUint32(r.pos,true), hi=r.dv.getUint32(r.pos+4,true)&0x3fffffff; r.pos+=8; return hi*4294967296+lo; }
+    case 14: return r.u16(); case 15: return r.u32(); case 16: return r.u64(); case 18: return r.str();
+    default: throw new Error('WRD: 알 수 없는 기본형 '+t);
+  }
+}
+// ---- minimal MS-NRBF reader: returns {root, objs} and leaves r.pos after MessageEnd ----
+function readNrbf(r){
+  const objs=new Map(), classes=new Map(); let rootId=null;
+  function classInfo(){ const id=r.i32(), name=r.str(), n=r.i32(); const names=[]; for(let i=0;i<n;i++) names.push(r.str()); return {id,name,names}; }
+  function typeInfo(n){ const bt=[]; for(let i=0;i<n;i++) bt.push(r.u8_()); const add=bt.map(b=>{ if(b===0||b===7) return r.u8_(); if(b===3) return r.str(); if(b===4){ const s=r.str(); r.i32(); return s; } return null; }); return {bt,add}; }
+  let pendingNull=0;
+  function value(){ // one member value that is a record
+    if(pendingNull>0){ pendingNull--; return null; }
+    const v=record(); if(v&&v.__nullN){ pendingNull=v.__nullN-1; return null; } return v;
+  }
+  function members(cls,obj){
+    cls.names.forEach((nm,i)=>{ const b=cls.types.bt[i]; obj[nm.replace(/^<(.+)>k__BackingField$/,'$1')]= b===0? prim(r,cls.types.add[i]) : value(); });
+    return obj;
+  }
+  function arrayVals(n,fn){ const a=new Array(n); for(let i=0;i<n;i++) a[i]=fn(); return a; }
+  function record(){
+    const t=r.u8_();
+    switch(t){
+      case 0: rootId=r.i32(); r.i32(); r.i32(); r.i32(); return record();
+      case 12: r.i32(); r.str(); return record();
+      case 5: case 4: { const ci=classInfo(); ci.types=typeInfo(ci.names.length); if(t===5) r.i32(); classes.set(ci.id,ci); const o={__class:ci.name}; objs.set(ci.id,o); return members(ci,o); }
+      case 3: case 2: { const ci=classInfo(); ci.types={bt:ci.names.map(()=>2),add:[]}; if(t===3) r.i32(); classes.set(ci.id,ci); const o={__class:ci.name}; objs.set(ci.id,o); return members(ci,o); }
+      case 1: { const id=r.i32(), meta=r.i32(); const ci=classes.get(meta); if(!ci) throw new Error('WRD: 클래스 정보 없음'); const o={__class:ci.name}; objs.set(id,o); return members(ci,o); }
+      case 6: { const id=r.i32(), s=r.str(); objs.set(id,s); return s; }
+      case 7: { const id=r.i32(), at=r.u8_(), rank=r.i32(); const lens=arrayVals(rank,()=>r.i32()); if(at>=3) arrayVals(rank,()=>r.i32()); const bt=r.u8_(); let add=null; if(bt===0||bt===7) add=r.u8_(); else if(bt===3) add=r.str(); else if(bt===4){ add=r.str(); r.i32(); }
+        const n=lens.reduce((a,b)=>a*b,1); const arr=[]; objs.set(id,arr); for(let i=0;i<n;i++) arr.push(bt===0? prim(r,add) : value()); return arr; }
+      case 8: { const pt=r.u8_(); return prim(r,pt); }
+      case 9: return {__ref:r.i32()};
+      case 10: return null;
+      case 13: return {__nullN:r.u8_()};
+      case 14: return {__nullN:r.i32()};
+      case 15: { const id=r.i32(), n=r.i32(), pt=r.u8_(); const arr=arrayVals(n,()=>prim(r,pt)); objs.set(id,arr); return arr; }
+      case 16: case 17: { const id=r.i32(), n=r.i32(); const arr=[]; objs.set(id,arr); for(let i=0;i<n;i++) arr.push(value()); return arr; }
+      case 11: return {__end:true};
+      default: throw new Error('WRD: 알 수 없는 레코드 0x'+t.toString(16)+' @'+(r.pos-1));
+    }
+  }
+  let first=null;
+  for(let guard=0;guard<1e6;guard++){ const v=record(); if(v&&v.__end) break; if(first===null) first=v; }
+  const seen=new Set();
+  function resolve(v){ if(v&&typeof v==='object'){ if(v.__ref!=null) return resolve(objs.get(v.__ref)); if(seen.has(v)) return v; seen.add(v); for(const k in v) v[k]=resolve(v[k]); } return v; }
+  const rootObj=resolve(rootId!=null&&objs.has(rootId)?objs.get(rootId):first);
+  return rootObj;
+}
+const listItems=l=>{ if(!l) return []; if(Array.isArray(l)) return l; const it=l._items||[]; const n=l._size!=null?l._size:it.length; return it.slice(0,n); };
+const TYPE_SIZE={'System.Int64':8,'System.UInt64':8,'System.Double':8,'System.DateTime':8,'System.TimeSpan':8,'System.Int32':4,'System.UInt32':4,'System.Single':4,'System.Int16':2,'System.UInt16':2,'System.Byte':1,'System.SByte':1,'System.Boolean':1,'System.String':-1};
+
+function isWrd(buf){ const u8=new Uint8Array(buf instanceof ArrayBuffer?buf:buf.buffer||buf); if(u8.length<200||u8[0]!==0) return false; const s=new TextDecoder('latin1').decode(u8.subarray(0,400)); return /WbcsFile/.test(s); }
+
+function parseWrd(buf){
+  const u8=buf instanceof Uint8Array?buf:new Uint8Array(buf);
+  const r=Reader(u8,0);
+  const fh=readNrbf(r);
+  if(!fh||!/WbcsFile/.test(fh.__class||'')) throw new Error('WRD 파일 헤더를 읽지 못했습니다.');
+  const rep=fh.StartReport||{};
+  const recs=[]; // [ticksDate, testTicks, stepIdx, cycleIdx, cellStatus, V, I(A), CQ, DQ, CE, DE]
+  let blocks=0;
+  while(r.pos<u8.length-20 && u8[r.pos]===0 && u8[r.pos+1]===1){
+    const dh=readNrbf(r); blocks++;
+    const cols=listItems(dh.ColumnList).map(c=>({name:String(c.Name||'').toUpperCase(),type:(c.DataType&&(c.DataType.Data||c.DataType))||''}));
+    const types=cols.map(c=>TYPE_SIZE[c.type]); if(types.some(x=>x===undefined)) throw new Error('WRD: 지원하지 않는 열 형식');
+    const ix=nm=>cols.findIndex(c=>c.name===nm);
+    const iDT=ix('DATE TIME'), iTT=ix('TEST TIME'), iSt=ix('STEP INDEX'), iTS=ix('TOTAL STEP'), iCy=ix('CYCLE INDEX'), iCS=ix('CELL STATUS'), iV=ix('VOLTAGE'), iI=ix('CURRENT'), iCQ=ix('CHARGE Q'), iDQ=ix('DISCHARGE Q'), iCE=ix('CHARGE E'), iDE=ix('DISCHARGE E');
+    if(iV<0||iI<0||iTT<0) throw new Error('WRD: 전압/전류/시간 열이 없습니다.');
+    const n=+dh.DataCount||0; const vals=new Array(cols.length);
+    for(let k=0;k<n&&r.pos<u8.length;k++){
+      for(let c=0;c<cols.length;c++){ const t=cols[c].type;
+        switch(t){ case 'System.Double': vals[c]=r.f64(); break; case 'System.Single': vals[c]=r.f32(); break; case 'System.Int64': case 'System.TimeSpan': vals[c]=r.i64(); break; case 'System.DateTime': vals[c]=prim(r,13); break; case 'System.UInt64': vals[c]=r.u64(); break;
+          case 'System.Int32': vals[c]=r.i32(); break; case 'System.UInt32': vals[c]=r.u32(); break; case 'System.Int16': vals[c]=r.i16(); break; case 'System.UInt16': vals[c]=r.u16(); break;
+          case 'System.Byte': case 'System.Boolean': vals[c]=r.u8_(); break; case 'System.SByte': vals[c]=r.i8(); break; case 'System.String': vals[c]=r.str(); break; }
+      }
+      const g=i=>i>=0?vals[i]:0;
+      recs.push([g(iDT),g(iTT),iTS>=0?g(iTS):g(iSt),g(iCy),g(iCS),g(iV),g(iI),g(iCQ),g(iDQ),g(iCE),g(iDE)]);
+    }
+  }
+  if(!recs.length) throw new Error('WRD 파일에서 측정 데이터를 찾지 못했습니다.');
+  // test start (local clock of the cycler PC, taken as Korea time)
+  const r0=recs[0]; const startTs=r0[0]? Math.round((r0[0]-r0[1]-TICKS_EPOCH)/1e7)-KST : Math.round(Date.now()/1000);
+  // steps = runs of the same total-step counter
+  const steps=[]; let cur=null;
+  for(const q of recs){
+    if(!cur||q[2]!==cur.key){ cur={key:q[2],cyc:q[3],status:q[4],recs:[],code:q[4]}; steps.push(cur); }
+    const chg=cur.status===3||(cur.status!==4&&q[6]>0);
+    const Q=(chg?q[7]:q[8])*1000, E=(chg?q[9]:q[10])*1000;
+    cur.recs.push([Math.round(q[1]/1e5),q[5],q[6]*1000,Q,E]);
+  }
+  const cycBase=Math.min(...steps.map(s=>s.cyc));
+  let lastCyc=null, nChg=0;
+  for(const s of steps){
+    const iMean=s.recs.reduce((a,x)=>a+x[2],0)/s.recs.length;
+    s.kind= s.status===1||Math.abs(iMean)<1e-9 ? 'rest' : (s.status===3||iMean>0?'chg':'dis');
+    s.cycle=s.cyc-cycBase+1;
+    if(s.cycle!==lastCyc){ lastCyc=s.cycle; nChg=0; }
+    if(s.kind==='chg'){ s.name=nChg++===0?'CC_Chg':'CV_Chg'; } else s.name= s.kind==='dis'?'CC_DChg':'Rest';
+    delete s.key; delete s.status; delete s.cyc;
+  }
+  steps.forEach((s,i)=>s.index=i+1);
+  const cycles=steps.reduce((m,s)=>Math.max(m,s.cycle),0);
+  const name=String(fh.FileName||'').split(/[\\/]/).pop().replace(/\.wrd$/i,'');
+  return {name,startTs,vRange:5,currentRangeMa:null,steps,cycles,format:'wrd',
+    meta:{cellWeight:+rep.CellWeight||0,electrodeArea:+rep.ElectrodeArea||0,cRate:+rep.CRate||0,memo:rep.Memo||'',model:fh.Model||'',serial:fh.SerialNo||'',channel:r0?null:null,blocks}};
+}
+root.Wrd={parseWrd,isWrd,readNrbf,Reader};
+// ---------------- TOYO (TOSCAT) folder: 000001, 000002 … + CAPACITY.LOG, *.PTN ----------------
+function txt(buf){ const u8=buf instanceof Uint8Array?buf:new Uint8Array(buf); try{ return new TextDecoder('euc-kr').decode(u8); }catch(e){ return new TextDecoder('latin1').decode(u8); } }
+function head(buf,n){ const u8=buf instanceof Uint8Array?buf:new Uint8Array(buf); return new TextDecoder('latin1').decode(u8.subarray(0,n||2048)); }
+function isToyoData(buf){ const h=head(buf,4096); return /PassTime\[Sec\]/i.test(h)&&/Voltage\[V\]/i.test(h)&&/Current\[mA\]/i.test(h); }
+function isToyoCap(buf){ const h=head(buf,512); return /^Date,Time,Condition,Mode,Cycle/i.test(h)&&/Cap\[mAh\]/i.test(h); }
+function isToyoAux(name){ return /\.(ptn|cmt|cfg|tmp|log)$/i.test(name)||/^(CHCMT\.TXT|CAPACITY\.LOG)$/i.test(name); }
+function splitCsv(line){ return line.split(',').map(x=>x.trim()); }
+function toyoTs(d,t){ const m=String(d).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/), k=String(t).match(/(\d{1,2}):(\d{2}):(\d{2})/); if(!m||!k) return null; return Date.UTC(+m[1],+m[2]-1,+m[3],+k[1],+k[2],+k[3])/1000-KST; }
+function parseToyo(dataFiles,capBuf,name){
+  dataFiles=dataFiles.slice().sort((a,b)=>(parseInt(a.name.replace(/\D/g,''))||0)-(parseInt(b.name.replace(/\D/g,''))||0)||a.name.localeCompare(b.name));
+  const rows=[];
+  for(const f of dataFiles){
+    const lines=txt(f.buf).split(/\r?\n/); let hi=-1, H=null;
+    for(let i=0;i<Math.min(lines.length,50);i++){ if(/PassTime\[Sec\]/i.test(lines[i])){ hi=i; H=splitCsv(lines[i]).map(x=>x.toLowerCase()); break; } }
+    if(hi<0) continue;
+    const c=nm=>H.findIndex(h=>h.startsWith(nm));
+    const iD=c('date'), iT=c('time'), iP=c('passtime'), iV=c('voltage'), iI=c('current'), iC=c('condition'), iM=c('mode'), iCy=H.indexOf('cycle'), iTC=c('totlcycle');
+    for(let i=hi+1;i<lines.length;i++){ const L=lines[i]; if(!L||L.indexOf(',')<0) continue; const a=splitCsv(L);
+      const V=parseFloat(a[iV]), I=parseFloat(a[iI]); if(!isFinite(V)) continue;
+      rows.push({ts:toyoTs(a[iD],a[iT]),pass:+a[iP]||0,V,I:isFinite(I)?I:0,cond:+a[iC]||0,mode:+a[iM]||0,cyc:iTC>=0&&a[iTC]!==''?+a[iTC]:(+a[iCy]||1)}); }
+  }
+  if(!rows.length) throw new Error('TOYO 데이터 파일(000001 …)에서 측정값을 찾지 못했습니다.');
+  // step-end capacities from CAPACITY.LOG (more exact than integrating the logged points)
+  const capMap=new Map();
+  if(capBuf){ const L=txt(capBuf).split(/\r?\n/); const H=splitCsv(L[0]||'').map(x=>x.toLowerCase()); const c=nm=>H.findIndex(h=>h.startsWith(nm));
+    const iC=c('condition'), iM=c('mode'), iCy=H.indexOf('cycle'), iTC=c('totlcycle'), iQ=c('cap'), iE=c('pow');
+    for(let i=1;i<L.length;i++){ const a=splitCsv(L[i]); if(a.length<5) continue; const cy=iTC>=0&&a[iTC]!==''?+a[iTC]:+a[iCy]; capMap.set(`${cy}|${+a[iM]}|${+a[iC]}`,{Q:parseFloat(a[iQ]),E:iE>=0?parseFloat(a[iE]):NaN}); } }
+  const startTs=rows[0].ts!=null? rows[0].ts-rows[0].pass : Math.round(Date.now()/1000);
+  const steps=[]; let cur=null, tPrev=0;
+  for(const q of rows){
+    // condition 9 = end-of-step marker row: it belongs to the step that just finished
+    const cond=q.cond===9&&cur?cur.cond:q.cond;
+    const key=`${q.cyc}|${q.mode}|${cond}`;
+    if(!cur||cur.key!==key||(q.pass<cur.lastPass&&q.cond!==9)){ cur={key,cond,mode:q.mode,cycle:q.cyc,recs:[],Q:0,E:0,lastPass:-1,prev:null}; steps.push(cur); }
+    let t=q.ts!=null? (q.ts-startTs) : tPrev; tPrev=t;
+    const sign=cond===2?-1:1, I=cond===1||cond===2? Math.abs(q.I)*sign : 0;
+    if(cur.prev){ const dt=Math.max(0,(t-cur.prev.t))/3600; cur.Q+=Math.abs(I+cur.prev.I)/2*dt; cur.E+=Math.abs(I*q.V+cur.prev.I*cur.prev.V)/2*dt; }
+    cur.prev={t,I,V:q.V}; cur.lastPass=q.pass;
+    cur.recs.push([Math.round(t*100),q.V,I,cur.Q,cur.E]);
+  }
+  const cycBase=Math.min(...steps.map(s=>s.cycle));
+  const acc=new Map(); let lastCyc=null, nChg=0;
+  for(const s of steps){
+    s.kind=s.cond===1?'chg':s.cond===2?'dis':'rest';
+    s.cycle=s.cycle-cycBase+1;
+    const cap=capMap.get(`${s.cycle+cycBase-1}|${s.mode}|${s.cond}`);
+    const lastQ=s.recs[s.recs.length-1][3], lastE=s.recs[s.recs.length-1][4];
+    const fq=cap&&isFinite(cap.Q)&&lastQ>0? cap.Q/lastQ : 1, fe=cap&&isFinite(cap.E)&&cap.E>0&&lastE>0? cap.E/lastE : 1;
+    // capacity accumulates over the charge (or discharge) steps of one cycle, like CC + CV
+    const k=s.cycle+'|'+s.kind; const off=acc.get(k)||{Q:0,E:0};
+    if(s.kind!=='rest'){ for(const r of s.recs){ r[3]=r[3]*fq+off.Q; r[4]=r[4]*fe+off.E; } const L=s.recs[s.recs.length-1]; acc.set(k,{Q:L[3],E:L[4]}); }
+    else for(const r of s.recs){ r[3]=0; r[4]=0; }
+    if(s.cycle!==lastCyc){ lastCyc=s.cycle; nChg=0; }
+    s.name= s.kind==='chg'? (nChg++===0?'CC_Chg':'CV_Chg') : s.kind==='dis'?'CC_DChg':'Rest';
+    s.code=s.cond; delete s.key; delete s.cond; delete s.prev; delete s.lastPass; delete s.Q; delete s.E;
+  }
+  steps.forEach((s,i)=>s.index=i+1);
+  const cycles=steps.reduce((m,s)=>Math.max(m,s.cycle),0);
+  return {name:name||'TOYO',startTs,vRange:5,currentRangeMa:null,steps,cycles,format:'toyo',meta:{}};
+}
+// ---------------- one entry point for both apps ----------------
+// files: [{name, buf:ArrayBuffer, dir?}] → {tests:[{name, file, P}], errors:[], skipped:[]}
+function loadRaw(files,opts){
+  opts=opts||{}; const tests=[], errors=[], skipped=[]; const toyo=new Map();
+  const tg=d=>{ if(!toyo.has(d)) toyo.set(d,{data:[],cap:null,names:[]}); return toyo.get(d); };
+  for(const f of files){
+    const nm=f.name, dir=f.dir||'';
+    try{
+      if(/\.cex$/i.test(nm)){ tests.push({name:nm,file:nm,P:root.Cex.parseCex(f.buf,{currentRangeMa:opts.currentRangeMa||10})}); continue; }
+      if(/\.wrd$/i.test(nm)||isWrd(f.buf)){ const P=parseWrd(f.buf); tests.push({name:nm,file:nm,P}); continue; }
+      if(/\.log$/i.test(nm)){ if(/capacity/i.test(nm)&&isToyoCap(f.buf)) tg(dir).cap=f.buf; continue; }
+      if(isToyoData(f.buf)){ tg(dir).data.push(f); continue; }
+      if(/\.ptn$/i.test(nm)&&!/_option\d*\.ptn$/i.test(nm)) tg(dir).names.push(nm.replace(/\.ptn$/i,''));
+      else if(/\.cmt$/i.test(nm)&&!/^chcmt/i.test(nm)) tg(dir).names.push(nm.replace(/\.cmt$/i,''));
+      else if(!isToyoAux(nm)) skipped.push(nm);
+    }catch(e){ errors.push({name:nm,error:e}); }
+  }
+  for(const [dir,g] of toyo){
+    if(!g.data.length){ continue; }
+    let nm=g.names[0];
+    if(!nm){ for(const [d2,g2] of toyo){ if(g2.names.length&&(dir===d2||dir.startsWith(d2+'/')||d2==='')){ nm=g2.names[0]; break; } } }
+    if(!nm){ const z=files.find(f=>f.dir===dir&&f.zip); nm=(z&&z.zip)||(dir?dir.split('/').filter(Boolean).pop():'')||'TOYO'; }
+    try{ const P=parseToyo(g.data,g.cap,nm); tests.push({name:nm,file:nm+'.toyo',P}); }catch(e){ errors.push({name:nm,error:e}); }
+  }
+  return {tests,errors,skipped};
+}
+const isRawName=nm=>/\.(cex|wrd|ptn|cmt|cfg|tmp|log)$/i.test(nm)||/^\d{6}$/.test(nm)||/^CHCMT\.TXT$/i.test(nm);
+// browser: files (and whole folders) from a drop or a folder picker → [{name, buf, dir}]
+async function readPicked(list){
+  const out=[];
+  for(const f of list){
+    if(!f||f.size===0&&!f.name) continue; const rel=f.__rel||f.webkitRelativePath||''; const dir=rel?rel.slice(0,rel.lastIndexOf('/')):'';
+    if(/\.zip$/i.test(f.name)){ // a zipped TOYO folder (or several .cex / .wrd files)
+      if(typeof JSZip==='undefined') throw new Error('ZIP 모듈을 불러오지 못했습니다.');
+      const zipBase=f.name.replace(/\.zip$/i,''); const z=await JSZip.loadAsync(await f.arrayBuffer()); const ents=[];
+      z.forEach((p,e)=>{ if(!e.dir&&!/(^|\/)(__MACOSX|\.)/.test(p)) ents.push([p,e]); });
+      for(const [p,e] of ents){ const nm=p.split('/').pop(); if(!isRawName(nm)) continue; const i=p.lastIndexOf('/');
+        out.push({name:nm,dir:(dir?dir+'/':'')+zipBase+(i>0?'/'+p.slice(0,i):''),buf:await e.async('arraybuffer'),zip:zipBase}); }
+      continue;
+    }
+    out.push({name:f.name,dir,buf:await f.arrayBuffer(),size:f.size});
+  }
+  return out;
+}
+async function filesFromDrop(dt){
+  const items=dt.items?[...dt.items]:[]; const ents=items.map(i=>i.webkitGetAsEntry&&i.webkitGetAsEntry()).filter(Boolean);
+  if(!ents.length||!ents.some(e=>e.isDirectory)) return [...dt.files];
+  const out=[];
+  async function walk(e,path){ if(e.isFile){ const f=await new Promise((ok,no)=>e.file(ok,no)); f.__rel=path+f.name; out.push(f); }
+    else if(e.isDirectory){ const rd=e.createReader(); let batch; do{ batch=await new Promise((ok,no)=>rd.readEntries(ok,no)); for(const c of batch) await walk(c,path+e.name+'/'); }while(batch.length); } }
+  for(const e of ents) await walk(e,'');
+  return out;
+}
+root.Raw={readPicked,filesFromDrop,loadRaw,parseWrd,parseToyo,isWrd,isToyoData,isToyoCap,isRawName};
+
+})(typeof window!=='undefined'?window:globalThis);
+
+</script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isNum=v=>typeof v==='number'&&isFinite(v);
+const READ_OPTS={cellStyles:false,cellFormula:false,cellHTML:false,cellText:false,cellNF:false,cellDates:false};
+
+/* ---------------- Excel look: constants lifted from the original workbook ---------------- */
+const FONT="Arial, 'Liberation Sans', Helvetica, 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+const PT=96/72;
+const LOOK={
+  cycle:{W:650,H:389,plot:[.124,.193,.824,.663],title:24,titleB:0,xt:18,xtB:0,yt:18,ytB:0,tick:11.5,leg:12,note:10},
+  vp:{W:912,H:565,plot:[.117,.197,.846,.668],title:20,titleB:0,xt:18,xtB:1,yt:15,ytB:1,tick:15,leg:14,note:12}
+};
+const EXCEL_COLORS={};
+const PALETTE=['#C00000','#70AD47','#2A1FFF','#FF33CC','#5B9BD5','#FF0000','#6600FF','#7030A0','#00B050','#ED7D31','#00B0F0','#806000','#FFC000','#3A3838'];
+// Excel shade order inside one colour group (lumMod / lumOff from the workbook)
+const SHADES=[[.5,0],[.75,0],[.6,.4],[.4,.6],[1,0],[.25,0],[.8,.2],[.9,0]];
+const DEFAULT_NOTE='Formation : 0.1 C 2.5 - 4.4 V 2 times\nCharge (CC-CV) : 1.0 C-0.05 C /  Discharge (CC) : 1.0 C';
+
+function hex2hsl(h){h=h.replace('#','');const r=parseInt(h.substr(0,2),16)/255,g=parseInt(h.substr(2,2),16)/255,b=parseInt(h.substr(4,2),16)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let H=0,S=0;const L=(mx+mn)/2;
+  if(mx!==mn){const d=mx-mn;S=L>.5?d/(2-mx-mn):d/(mx+mn);H=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;H/=6;}return [H,S,L];}
+function hsl2hex(H,S,L){const f=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+  let r,g,b;if(S===0){r=g=b=L;}else{const q=L<.5?L*(1+S):L+S-L*S,p=2*L-q;r=f(p,q,H+1/3);g=f(p,q,H);b=f(p,q,H-1/3);}
+  return '#'+[r,g,b].map(x=>Math.round(Math.min(1,Math.max(0,x))*255).toString(16).padStart(2,'0')).join('');}
+function shade(hex,i,n,mode){ if(mode==='same'||n<=1) return hex; const [m,o]=SHADES[i%SHADES.length]; const [H,S,L]=hex2hsl(hex); return hsl2hex(H,S,Math.min(1,L*m+o)); }
+function ramp(hex,i,n){ if(n<=1) return hex; const [H,S,L]=hex2hsl(hex); const t=i/(n-1); // dark -> light, like Excel tints
+  const lo=L*.45, hi=Math.min(.85,L*.4+.55); return hsl2hex(H,S,lo+(hi-lo)*t); }
+
+/* ---------------- text measuring ---------------- */
+const mctx=document.createElement('canvas').getContext('2d');
+function tw(text,px,bold){mctx.font=(bold?'bold ':'')+px+'px '+FONT;return mctx.measureText(text).width;}
+
+/* ---------------- axis helpers ---------------- */
+function niceStep(range,target){const raw=range/Math.max(1,target);const p=Math.pow(10,Math.floor(Math.log10(raw)));const f=raw/p;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p;}
+function niceAxis(lo,hi,target){ if(!isFinite(lo)||!isFinite(hi)){lo=0;hi=1;} if(lo===hi){lo-=1;hi+=1;} const st=niceStep(hi-lo,target||8); return {min:Math.floor(lo/st+1e-9)*st,max:Math.ceil(hi/st-1e-9)*st,step:st}; }
+function decimals(step){const s=String(+step.toPrecision(6));const i=s.indexOf('.');return i<0?0:s.length-i-1;}
+function pct(arr,p){if(!arr.length)return NaN;const a=arr.slice().sort((x,y)=>x-y);return a[Math.min(a.length-1,Math.max(0,Math.floor(p*(a.length-1))))];}
+function cycleX(maxX){ if(!(maxX>0)) maxX=10; if(maxX<=50) return {min:0,max:Math.max(10,Math.ceil(maxX/10)*10),step:5}; if(maxX<=100) return {min:0,max:Math.ceil((maxX+1)/10)*10,step:10}; if(maxX<=200) return {min:0,max:Math.ceil((maxX+1)/20)*20,step:20}; return {min:0,max:Math.ceil((maxX+1)/50)*50,step:50}; }
+function autoAxes(kind,series){
+  const xs=[],ys=[];
+  for(const s of series) for(const seg of s.segs) for(const p of seg){ if(isNum(p[0])&&isNum(p[1])){xs.push(p[0]);ys.push(p[1]);} }
+  const xmax=xs.length?Math.max(...xs):10, ymax=ys.length?Math.max(...ys):1, ymin=ys.length?Math.min(...ys):0;
+  if(kind==='dis'){ const x=cycleX(xmax); const y=(ymax>100&&ymax<=220&&ymin>=0)?{min:0,max:220,step:20}:niceAxis(0,ymax*1.1,10); return {x,y}; }
+  if(kind==='eff'){ const x=cycleX(xmax); const p5=pct(ys,.05), mx=pct(ys,.995); let y;
+    if(p5>=97&&mx<=102) y={min:97,max:102,step:.5}; else if(p5>=95&&mx<=102) y={min:95,max:102,step:1}; else y=niceAxis(Math.max(0,p5-1),Math.min(110,Math.max(mx,100)+.5),8); return {x,y}; }
+  if(kind==='ret'){ const x=cycleX(xmax); let y; const lo=pct(ys,.002);
+    if(lo>=75) y={min:75,max:110,step:5}; else if(lo>=70) y={min:70,max:110,step:5}; else y={min:Math.max(0,Math.floor(lo/10)*10-(lo%10<3?10:0)),max:110,step:10}; return {x,y}; }
+  // voltage profile
+  const x=(xmax>100&&xmax<=240)?{min:0,max:240,step:20}:niceAxis(0,xmax*1.05,10);
+  const y=(ymin>=2-1e-9&&ymax<=4.7+1e-9)?{min:2,max:4.7,step:.5}:niceAxis(Math.floor(ymin*10)/10,ymax,6);
+  return {x,y};
+}
+
+/* ---------------- the chart renderer (SVG, Excel-styled) ---------------- */
+let UID=0;
+function markerPath(kind,x,y,sz){
+  if(kind==='square'){const s=sz*.5;return `M${(x-s).toFixed(1)},${(y-s).toFixed(1)}h${(2*s).toFixed(1)}v${(2*s).toFixed(1)}h${(-2*s).toFixed(1)}z`;}
+  if(kind==='diamond'){const d=sz*.68;return `M${x.toFixed(1)},${(y-d).toFixed(1)}l${d.toFixed(1)},${d.toFixed(1)}l${(-d).toFixed(1)},${d.toFixed(1)}l${(-d).toFixed(1)},${(-d).toFixed(1)}z`;}
+  const r=sz*.5;return `M${(x-r).toFixed(1)},${y.toFixed(1)}a${r},${r} 0 1,0 ${(2*r).toFixed(1)},0a${r},${r} 0 1,0 ${(-2*r).toFixed(1)},0`;
+}
+function renderChart(spec){
+  const L=LOOK[spec.look], k=spec.fontScale||1, W=L.W, H=L.H, id='c'+(++UID);
+  const P={x:W*L.plot[0],y:H*L.plot[1],w:W*L.plot[2],h:H*L.plot[3]};
+  const ax=spec.axes, X=ax.x, Y=ax.y;
+  const sx=v=>P.x+(v-X.min)/(X.max-X.min)*P.w, sy=v=>P.y+P.h-(v-Y.min)/(Y.max-Y.min)*P.h;
+  const px=n=>n*PT*k;
+  const o=[];
+  o.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="${esc(FONT)}">`);
+  o.push(`<defs><linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9d9d9"/></linearGradient>`+
+    `<clipPath id="${id}k"><rect x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}"/></clipPath>`+
+    `<filter id="${id}s" x="-5%" y="-10%" width="115%" height="130%"><feDropShadow dx="2" dy="2" stdDeviation="1.6" flood-color="#000" flood-opacity=".4"/></filter></defs>`);
+  o.push(`<rect x="0.5" y="0.5" width="${W-1}" height="${H-1}" fill="#ffffff" stroke="#000000" stroke-width="1"/>`);
+  // title
+  const TX=spec.txt||{}; const fz=(key,def)=>(TX[key]&&+TX[key].sz>0)?+TX[key].sz*PT:def; const ox=key=>+(TX[key]&&TX[key].dx)||0, oy=key=>+(TX[key]&&TX[key].dy)||0;
+  const tp=fz('title',px(L.title)); const titleY=H*.018+px(L.title)*.85;
+  if(spec.title) o.push(`<text x="${(W/2+ox('title')).toFixed(1)}" y="${(H*.018+tp*.85+oy('title')).toFixed(1)}" text-anchor="middle" font-size="${tp.toFixed(1)}" ${L.titleB?'font-weight="bold"':''} fill="#000000">${esc(spec.title)}</text>`);
+  // condition note (text box under the title, like the workbook)
+  let noteBox=null, legendBox=null;
+  if(spec.note){ const np=fz('note',px(L.note)); const nx=P.x-W*.01+ox('note'); const lines=spec.note.split('\n').filter(s=>s.trim()!=='').slice(0,3); let ny=titleY+np*1.2+oy('note'); noteBox={x1:(nx-W*.002)/W,y1:(ny-np*1.05)/H,x2:.985,y2:Math.min(P.y/H,(ny+np*1.08*(lines.length-1)+np*.4)/H),lines};
+    for(const ln of lines){ o.push(`<text x="${nx.toFixed(1)}" y="${ny.toFixed(1)}" font-size="${np.toFixed(1)}" font-weight="bold" fill="#000000" xml:space="preserve">${esc(ln)}</text>`); ny+=np*1.08; } }
+  // plot area
+  o.push(`<rect x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}" fill="url(#${id}g)"/>`);
+  const tk=fz('tick',px(L.tick)), dY=decimals(Y.step), dX=decimals(X.step);
+  const yt=[],xt=[]; for(let v=Y.min, i=0; v<=Y.max+Y.step*1e-6 && i<200; i++, v=Y.min+i*Y.step) yt.push(+v.toFixed(10));
+  for(let v=X.min, i=0; v<=X.max+X.step*1e-6 && i<400; i++, v=X.min+i*X.step) xt.push(+v.toFixed(10));
+  // gridlines: horizontal, grey dashed (sysDash)
+  for(const v of yt){ if(v<=Y.min+1e-9||v>=Y.max-1e-9) continue; const y=sy(v).toFixed(1); o.push(`<line x1="${P.x}" x2="${P.x+P.w}" y1="${y}" y2="${y}" stroke="#bfbfbf" stroke-width="0.9" stroke-dasharray="3 2"/>`); }
+  // ticks + labels
+  const lwx=Math.max(...xt.map(v=>tw(v.toFixed(dX),tk,true)))+6; const pxStep=P.w/Math.max(1,(X.max-X.min)/X.step); const kx=Math.max(1,Math.ceil(lwx/pxStep)); const kyy=Math.max(1,Math.ceil(tk*1.05/(P.h/Math.max(1,(Y.max-Y.min)/Y.step))));
+    o.push(`<g fill="#000000" font-size="${tk.toFixed(1)}" font-weight="bold">`);
+  for(const v of yt){ const y=sy(v); const yi=Math.round((v-Y.min)/Y.step); o.push(`<line x1="${P.x-5}" x2="${P.x}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#000" stroke-width="0.9"/><text x="${(P.x-8+ox('tick')).toFixed(1)}" y="${(y+tk*.36).toFixed(1)}" text-anchor="end">${yi%kyy?'':v.toFixed(dY)}</text>`); }
+  for(const v of xt){ const x=sx(v); const xi=Math.round((v-X.min)/X.step); o.push(`<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${P.y+P.h}" y2="${P.y+P.h+5}" stroke="#000" stroke-width="0.9"/><text x="${x.toFixed(1)}" y="${(P.y+P.h+6+tk*.95+oy('tick')).toFixed(1)}" text-anchor="middle">${xi%kx?'':v.toFixed(dX)}</text>`); }
+  o.push('</g>');
+  // axis titles
+  const xp=fz('xt',px(L.xt)), yp=fz('yt',px(L.yt));
+  if(spec.xTitle) o.push(`<text x="${(P.x+P.w/2+ox('xt')).toFixed(1)}" y="${(Math.min(H-6,H*.912+xp*.9)+oy('xt')).toFixed(1)}" text-anchor="middle" font-size="${xp.toFixed(1)}" ${L.xtB?'font-weight="bold"':''} fill="#000000">${esc(spec.xTitle)}</text>`);
+  if(spec.yTitle){ const cx=W*.012+yp*.75+ox('yt'), cy=P.y+P.h/2+oy('yt'); o.push(`<text transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(-90)" text-anchor="middle" font-size="${yp.toFixed(1)}" ${L.ytB?'font-weight="bold"':''} fill="#000000">${esc(spec.yTitle)}</text>`); }
+  // series
+  const hit=[];
+  o.push(`<g clip-path="url(#${id}k)">`);
+  const ms=7*PT*(spec.markerScale||1);
+  for(const s of spec.series){
+    const hs={name:s.name,color:s.color,pts:[]};
+    if(s.line!==false){ let d=''; for(const seg of s.segs){ let first=true, lx=null, ly=null;
+        for(const p of seg){ if(!isNum(p[0])||!isNum(p[1])){first=true;continue;} const x=sx(p[0]), y=sy(p[1]);
+          if(!first && Math.abs(x-lx)<.6 && Math.abs(y-ly)<.6) continue; d+=(first?'M':'L')+x.toFixed(1)+','+y.toFixed(1); first=false; lx=x; ly=y; } }
+      if(d) o.push(`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.lineW||2}" stroke-linejoin="round" stroke-linecap="round"/>`); }
+    if(s.marker && s.marker!=='none'){ let d=''; const every=Math.max(1,s.every||1); let i=0;
+      for(const seg of s.segs) for(const p of seg){ if(!isNum(p[0])||!isNum(p[1])) continue; if((i++)%every) continue; const x=sx(p[0]),y=sy(p[1]); if(x<P.x-10||x>P.x+P.w+10||y<P.y-10||y>P.y+P.h+10) continue; d+=markerPath(s.marker,x,y,ms); }
+      if(d) o.push(`<path d="${d}" fill="#ffffff" stroke="${s.color}" stroke-width="${(2*PT*.75).toFixed(2)}"/>`); }
+    // hover targets (sub-sampled)
+    let cnt=0; for(const seg of s.segs) cnt+=seg.length; const st=Math.max(1,Math.floor(cnt/600)); let j=0;
+    for(const seg of s.segs) for(const p of seg){ if((j++)%st) continue; if(!isNum(p[0])||!isNum(p[1])) continue; const x=sx(p[0]),y=sy(p[1]); if(x<P.x||x>P.x+P.w||y<P.y||y>P.y+P.h) continue; hs.pts.push([x,y,p[0],p[1]]); }
+    hit.push(hs);
+  }
+  o.push('</g>');
+  o.push(`<rect x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}" fill="none" stroke="#000000" stroke-width="1"/>`);
+  // legend
+  const lg=spec.legend||'top';
+  if(lg!=='none' && spec.series.length){
+    const horiz=(lg==='top'||lg==='bottom'), samp=34, gap=6, pad=8, n=spec.series.length;
+    const Wmax=horiz?P.w-8:P.w-20, Hmax=P.h-8;
+    let best=null;
+    for(const f of [1,.92,.85,.78,.7,.62,.55]){
+      const lp=fz('leg',px(L.leg))*f, rh=lp*1.45, ws=spec.series.map(s=>samp+gap+tw(s.name,lp,false)+12);
+      const fit=cols=>{ const cw=[]; for(let i=0;i<n;i++){ const c=i%cols; cw[c]=Math.max(cw[c]||0,ws[i]); } const tot=cw.reduce((a,b)=>a+b,0)+2*pad; const rows=Math.ceil(n/cols); return {cols,cw,tot,rows,h:rows*rh+pad}; };
+      let L1=null;
+      if(horiz){ for(let c=n;c>=1;c--){ const t=fit(c); if(t.tot<=Wmax||c===1){ L1=t; break; } } }
+      else { for(let c=1;c<=n;c++){ const t=fit(c); if((t.h<=Hmax*.9&&t.tot<=Wmax)||c===n){ L1=t; break; } if(t.tot>Wmax){ L1=fit(Math.max(1,c-1)); break; } } }
+      L1.lp=lp; L1.rh=rh; best=L1;
+      if(L1.h<=Hmax*(horiz?.55:.9) && L1.tot<=Wmax+1) break;
+    }
+    const {cols,cw,rows,lp,rh}=best; const bh=Math.min(best.h,Hmax);
+    let bw,bx,by;
+    if(horiz){ bw=P.w-8; bx=P.x+4; } else { bw=Math.min(Wmax,best.tot); bx=(lg==='bottom-left'||lg==='top-left')?P.x+10:P.x+P.w-bw-10; }
+    by=(lg==='top'||lg==='top-left'||lg==='top-right')? P.y+4 : P.y+P.h-bh-(lg==='bottom'?4:10);
+    bx+=ox('leg'); by+=oy('leg');
+    legendBox={x:bx/W,y:by/H,w:bw/W,h:bh/H,sz:lp/PT};
+    o.push(`<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="#f2f2f2" stroke="#000000" stroke-width="0.9" filter="url(#${id}s)"/>`);
+    const extra=Math.max(0,(bw-2*pad-cw.reduce((a,b)=>a+b,0))/cols); const cx=[]; let acc=bx+pad; for(let c=0;c<cols;c++){ cx[c]=acc; acc+=cw[c]+extra; }
+    const msL=Math.min(ms,lp*.75);
+    spec.series.forEach((s,i)=>{ const c=i%cols, r=Math.floor(i/cols); const x0=cx[c], cy=by+pad/2+r*rh+rh/2; if(cy>by+bh) return;
+      if(s.line!==false) o.push(`<line x1="${x0.toFixed(1)}" x2="${(x0+samp).toFixed(1)}" y1="${cy.toFixed(1)}" y2="${cy.toFixed(1)}" stroke="${s.color}" stroke-width="${s.lineW||2}"/>`);
+      if(s.marker&&s.marker!=='none') o.push(`<path d="${markerPath(s.marker,x0+samp/2,cy,msL)}" fill="#ffffff" stroke="${s.color}" stroke-width="${(2*PT*.75).toFixed(2)}"/>`);
+      o.push(`<text x="${(x0+samp+gap).toFixed(1)}" y="${(cy+lp*.36).toFixed(1)}" font-size="${lp.toFixed(1)}" fill="#000000">${esc(s.name)}</text>`); });
+  }
+  o.push('</svg>');
+  return {svg:o.join(''),hit,W,H,noteBox,legendBox};
+}
+
+/* ---------------- state ---------------- */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+const saved=store.get('cellgraph.v1',{});
+const S={
+  tab:'cyc', sources:[], fileName:'', isSample:false,
+  colors:saved.colors||{}, names:saved.names||{},
+  cyc:Object.assign({src:0,view:'group',note:DEFAULT_NOTE,line:true,every:1,shadeMode:'excel',font:1,off:{},goff:{}},saved.cyc||{}),
+  vp:Object.assign({src:0,mode:'cycle',view:'group',note:DEFAULT_NOTE,connect:false,shadeMode:'excel',font:1,off:{},goff:{},laboff:{},lineW:2},saved.vp||{}),
+  axes:Object.assign({
+    dis:{auto:true,title:'Discharge Capacity',xt:'Cycle number',yt:'Discharge Capacity (mAh/g)',legend:'top'},
+    eff:{auto:true,title:'Efficiency',xt:'Cycle',yt:'Efficiency(%)',legend:'top'},
+    ret:{auto:true,title:'Retention',xt:'Cycle',yt:'Retention(%)',legend:'bottom-left'},
+    vp:{auto:true,title:'Voltage Profile _ {label}',xt:' Capacity (mAh/g)',yt:'Voltage (V) (vs. Li+/Li) ',legend:'bottom'}
+  },saved.axes||{})
+};
+['cyc','vp'].forEach(t=>{S[t].off=S[t].off||{};S[t].goff=S[t].goff||{};});
+S.cex=Object.assign({nForm:0,lastMass:'',irange:10},saved.cex||{});
+for(const k in EXCEL_COLORS) if(!S.colors[k]) S.colors[k]=EXCEL_COLORS[k];
+const settingsObj=()=>({colors:S.colors,names:S.names,cyc:S.cyc,vp:Object.assign({},S.vp),axes:S.axes,cex:S.cex});
+let saveT=0; function persist(){clearTimeout(saveT);saveT=setTimeout(()=>{ store.set('cellgraph.v1',settingsObj()); if(typeof persistData==='function') persistData(); },300);}
+
+function groupColor(key,order){ if(!S.colors[key]){ const used=new Set(Object.values(S.colors)); let c=PALETTE.find(p=>!used.has(p)); if(!c) c=PALETTE[order%PALETTE.length]; S.colors[key]=c; } return S.colors[key]; }
+const dispName=n=>S.names[n]||n;
+
+/* ---------------- loading ---------------- */
+function normalize(src){
+  if(src.kind==='cycle'){ src.cells.forEach(c=>{ c.pts=c.pts.map(p=>{ p=p.slice(); if(!(p[2]>0)){ p[2]=null; p[3]=null; p[4]=null; } if(!(p[1]>0)){ p[1]=null; p[3]=null; } return p; }); }); src.cells=src.cells.filter(c=>c.pts&&c.pts.some(p=>p[2]!=null)); }
+  if(src.kind==='profile') src.curves=src.curves.filter(c=>c.segs&&c.segs.length);
+  return src;
+}
+function loadSample(){
+  let d={sources:[]}; try{ d=JSON.parse($('#sampleData').textContent||'{}'); }catch(e){}
+  if(!d.sources||!d.sources.length){ S.sources=[]; S.isSample=false; syncFileName(); afterLoad(); return; }
+  S.sources=d.sources.map(x=>Object.assign(normalize(x),{file:'Full cell data (예시)'})); S.fileName='Full cell data (예시)'; S.isSample=true; afterLoad();
+}
+function gridFromTSV(text){ return text.replace(/\r/g,'').split('\n').map(line=>line.split('\t').map(v=>{ const t=v.trim(); if(t==='') return null; const n=Number(t.replace(/,/g,'')); return (/^[-+]?[\d,]*\.?\d+(e[-+]?\d+)?$/i.test(t)&&isFinite(n))?n:t; })); }
+function busy(msg){ const fb=$('#filebar'); fb.innerHTML=`<span class="busy">${esc(msg)}</span>`; }
+async function loadFiles(files,mode){
+  if(!files||!files.length) return;
+  if(typeof XLSX==='undefined'){ toast('엑셀 읽기 모듈을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침하세요.'); return; }
+  busy('파일을 읽는 중… (큰 파일은 몇 초 걸립니다)');
+  await new Promise(r=>setTimeout(r,30));
+  const out=[]; const names=[]; const cexList=[];
+  // cycler raw data (.cex · .wrd · TOYO folder/zip) goes through the same reader as 셀 데이터 변환기
+  const isSheet=f=>/\.(xlsx|xls|xlsm|xlsb|csv|ods)$/i.test(f.name);
+  const rawIn=files.filter(f=>!isSheet(f)); files=files.filter(isSheet);
+  if(rawIn.length){
+    try{ const picked=await Raw.readPicked(rawIn); const R=Raw.loadRaw(picked,{currentRangeMa:+S.cex.irange||10});
+      R.errors.forEach(x=>{ console.error(x.error); toast(`"${x.name}"을(를) 읽지 못했습니다. ${x.error&&x.error.message||''}`); });
+      if(!R.tests.length&&!R.errors.length) toast('읽을 수 있는 파일이 없습니다. 엑셀, .cex, .wrd 파일이나 TOYO 폴더(.zip)를 넣어 주세요.');
+      R.tests.forEach(t=>{ cexList.push({name:t.file,label:t.name,P:t.P}); names.push(t.file); });
+    }catch(e){ console.error(e); toast('원본 파일을 읽지 못했습니다. '+(e&&e.message||'')); }
+  }
+  for(const f of files){
+    try{
+      const buf=await f.arrayBuffer();
+      const wb=XLSX.read(buf,Object.assign({type:'array'},READ_OPTS));
+      names.push(f.name);
+      for(const sn of wb.SheetNames){
+        await new Promise(r=>setTimeout(r,0));
+        let d=null; try{ d=BatParse.detect(XLSX,wb.Sheets[sn]); }catch(e){ console.warn(sn,e); }
+        if(d){ d.name=sn; d.file=f.name; out.push(normalize(d)); }
+      }
+    }catch(e){ console.error(e); toast(`"${f.name}"을(를) 읽지 못했습니다. 엑셀(.xlsx) 또는 충방전기 원본(.cex · .wrd · TOYO) 파일인지 확인하세요.`); }
+  }
+  if(cexList.length){ renderFilebar(); const opt=await askCex(cexList); if(!opt){ if(!out.length){ renderFilebar(); return; } } else cexList.forEach((c,i)=>out.push(...cexToSources(c,opt,i))); if(opt) applyCexDefaults(opt,cexList); }
+  if(!out.length){ toast('그래프로 만들 수 있는 시트를 찾지 못했습니다. 아래 "엑셀에서 붙여넣기" 도움말의 형식을 확인하세요.'); renderFilebar(); return; }
+  if(mode==='add' && !S.isSample){ snapshot(); const nf=new Set(names); const kept=S.sources.filter(x=>!nf.has(x.file)); const replaced=S.sources.length-kept.length; S.sources=kept.concat(out); if(replaced) toast('같은 이름의 파일이 있어 새 파일로 바꿨습니다.'); }
+  else { S.sources=out; S.cyc.src=0; S.vp.src=0; }
+  S.isSample=false; syncFileName(); afterLoad();
+}
+function addPasted(text){
+  const g=gridFromTSV(text); let d=null;
+  try{ d=BatParse.detectCycle(g)||BatParse.detectProfile(g); }catch(e){ console.warn(e); }
+  if(!d){ toast('형식을 인식하지 못했습니다. 머리글(Chg./Dis. 또는 mAh/g / Volt) 행까지 함께 복사해 주세요.'); return false; }
+  let n=1; while(S.sources.some(s=>s.name==='붙여넣기 '+n)) n++; d.name='붙여넣기 '+n; d.file='붙여넣은 데이터';
+  if(S.isSample){ S.sources=[]; S.isSample=false; }
+  S.sources.push(normalize(d)); syncFileName();
+  if(d.kind==='cycle'){ S.cyc.src=cycSources().length-1; S.tab='cyc'; } else { S.vp.src=vpSources().length-1; S.tab='vp'; }
+  afterLoad(); return true;
+}
+const srcLabel=s=>(new Set(S.sources.map(x=>x.file)).size>1?String(s.file||'').replace(/\.[^.]+$/,'')+' · ':'')+s.name;
+const cycSources=()=>S.sources.filter(s=>s.kind==='cycle');
+const vpSources=()=>S.sources.filter(s=>s.kind==='profile');
+
+/* ---------------- remember the loaded data in this browser (IndexedDB) ---------------- */
+const IDB={ p:null,
+  open(){ if(!this.p) this.p=new Promise(res=>{ try{ const r=indexedDB.open('cellgraph',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); r.onblocked=()=>res(null); }catch(e){ res(null); } }); return this.p; },
+  async get(k){ const db=await this.open(); if(!db) return undefined; return new Promise(res=>{ try{ const q=db.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>res(undefined); }catch(e){ res(undefined); } }); },
+  async set(k,v){ const db=await this.open(); if(!db) return; try{ db.transaction('kv','readwrite').objectStore('kv').put(v,k); }catch(e){} }
+};
+let dataT=0, booted=false, quiet=true, localSavedAt=0;
+function persistData(){ if(!booted) return; if(!quiet) localSavedAt=Date.now(); clearTimeout(dataT);
+  dataT=setTimeout(()=>{ IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:(typeof localOwner!=='undefined'?localOwner:null)}); cloudSave(); },700); }
+
+/* ---------------- account storage (db capability, private per person) ---------------- */
+const CLOUD={db:null,base:null,ready:false,status:'local',at:null,hash:null,busy:false,again:false,warned:false};
+const CHUNK=180000;
+function fnv(str){ let h=0x811c9dc5; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,0x01000193); } return (h>>>0).toString(36)+'.'+str.length.toString(36); }
+function cloudBadge(){
+  const t=CLOUD.at?new Date(CLOUD.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
+  const m={local:['이 브라우저에만 저장',FBMODE?'오른쪽 위 로그인 버튼으로 로그인하면 내 계정에 저장되어 다른 컴퓨터에서도 이어서 볼 수 있습니다.':'claude.ai에 로그인한 상태로 열면 내 계정에 저장되어 다른 컴퓨터에서도 이어서 볼 수 있습니다.'],
+    loading:['계정 확인 중…',''],ready:['계정 저장 켜짐','파일을 불러오거나 바꾸면 내 계정에 자동으로 저장됩니다.'],saving:['계정에 저장 중…',''],saved:['계정에 저장됨'+(t?' · '+t:''),'내 계정에 비공개로 저장되어 있습니다. 같은 계정으로 로그인하면 어느 컴퓨터에서든 이어서 볼 수 있습니다.'],
+    full:['계정 저장 공간 부족 · 이 브라우저에만 저장','저장 공간이 가득 찼습니다. 쓰지 않는 파일이나 시트를 지우면 다시 계정에 저장됩니다.'],
+    error:['계정 저장 실패 · 이 브라우저에만 저장','잠시 후 다시 시도합니다. 데이터는 이 브라우저에 남아 있습니다.']}[CLOUD.status]||['',''];
+  return `<span class="cloud ${CLOUD.status}" id="cloudSt" title="${esc(m[1])}"><span class="cd" aria-hidden="true"></span>${esc(m[0])}</span>`;
+}
+function setCloud(st,at){ CLOUD.status=st; if(at) CLOUD.at=at; const e=document.getElementById('cloudSt'); if(e) e.outerHTML=cloudBadge(); }
+async function cloudInit(){
+  if(FBMODE) return fbInit();
+  try{
+    if(!(window.claude&&typeof window.claude.use==='function')){ setCloud('local'); return; }
+    setCloud('loading');
+    const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    const uid=user?await user.id():null;
+    if(!db||!uid){ setCloud('local'); return; }
+    await cloudAttach(db,'data/users/'+uid);
+  }catch(e){ console.warn('cloud init',e); setCloud('local'); }
+}
+async function cloudAttach(db,base){
+  CLOUD.db=db; CLOUD.base=base; CLOUD.hash=null; CLOUD.at=null;
+  const st=await db.doc(CLOUD.base+'/state').get();
+  if(st.exists){ const m=st.data(); CLOUD.hash=m.hash; CLOUD.at=m.savedAt;
+    if((m.savedAt||0)>localSavedAt){ const payload=await cloudRead(m); if(payload) applyPayload(payload,m.savedAt); } }
+  CLOUD.ready=true; setCloud(st.exists?'saved':'ready'); cloudSave(true);
+}
+
+/* ---------------- web version: the shared Cell·Data Lab login (login.js / FBA) ---------------- */
+var FBMODE=!!(window.FBA&&window.FBA.MODE);
+var localOwner=null, pendingLocal=null;
+function fbInit(){
+  FBA.chip(document.getElementById('acct')); FBA.gate();
+  FBA.beforeLogout(async()=>{ if(CLOUD.ready){ clearTimeout(cloudT); await cloudWrite(); } });
+  FBA.onUser(u=>{ onFbUser(u); });
+  FBA.init();
+  if(!FBA.CONFIGURED) setCloud('local');
+}
+function applyLocal(d){ const q=quiet; quiet=true; localSavedAt=d.savedAt||0; localOwner=d.owner||null; S.sources=d.sources; S.isSample=!!d.isSample; S.cyc.src=d.cs||0; S.vp.src=d.vs||0; if(d.tab) S.tab=d.tab; syncFileName(); afterLoad(); quiet=q; }
+function wipeLocal(){ quiet=true; S.sources=[]; S.isSample=false; localSavedAt=0; IDB.set('data',null); syncFileName(); afterLoad(); quiet=false; }
+async function onFbUser(u){
+  const uid=u?u.uid:null;
+  // data this browser kept for someone else (or before a logout) is never shown to the next person
+  if(pendingLocal){ const d=pendingLocal; pendingLocal=null; if(d.owner===uid) applyLocal(d); else IDB.set('data',null); }
+  else if(localOwner&&localOwner!==uid) wipeLocal();
+  localOwner=uid;
+  if(!u){ CLOUD.ready=false; CLOUD.db=null; CLOUD.hash=null; CLOUD.at=null; setCloud('local'); return; }
+  setCloud('loading');
+  try{ await cloudAttach(FBA.fs,'data/users/'+uid); }
+  catch(e){ console.warn('cloud attach',e); CLOUD.ready=false; setCloud(e&&e.code==='permission-denied'?'local':'error'); if(e&&e.code==='permission-denied') toast('계정 저장 권한이 없습니다. 관리자에게 Firestore 보안 규칙을 확인해 달라고 하세요.'); }
+}
+async function cloudRead(m){
+  const parts=[]; for(let i=0;i<m.n;i++){ const d=await CLOUD.db.doc(`${CLOUD.base}/c_${m.gen}_${i}`).get(); if(!d.exists) return null; parts.push(d.data().s); }
+  const zip=await JSZip.loadAsync(parts.join(''),{base64:true}); return JSON.parse(await zip.file('d.json').async('string'));
+}
+function applyPayload(p,savedAt){
+  quiet=true;
+  S.sources=Array.isArray(p.sources)?p.sources:[]; S.isSample=!!p.isSample; S.cyc.src=p.cs||0; S.vp.src=p.vs||0; if(p.tab) S.tab=p.tab;
+  if(p.settings){ const t=p.settings; if(t.colors) S.colors=t.colors; if(t.names) S.names=t.names; if(t.cyc) Object.assign(S.cyc,t.cyc); if(t.vp) Object.assign(S.vp,t.vp); if(t.axes) S.axes=Object.assign(S.axes,t.axes); store.set('cellgraph.v1',settingsObj()); }
+  localSavedAt=savedAt||0; syncFileName(); afterLoad(); quiet=false;
+}
+let cloudT=0;
+function cloudSave(now){ clearTimeout(cloudT); cloudT=setTimeout(cloudWrite,now?50:1500); }
+async function cloudWrite(){
+  if(!CLOUD.ready||!localSavedAt) return;
+  if(CLOUD.busy){ CLOUD.again=true; return; }
+  const json=JSON.stringify({v:1,sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,settings:settingsObj()});
+  const hash=fnv(json); if(hash===CLOUD.hash){ setCloud('saved'); return; }
+  CLOUD.busy=true; setCloud('saving');
+  try{
+    const zip=new JSZip(); zip.file('d.json',json); const b64=await zip.generateAsync({type:'base64',compression:'DEFLATE',compressionOptions:{level:6}});
+    const gen=Date.now().toString(36)+Math.random().toString(36).slice(2,6); const n=Math.max(1,Math.ceil(b64.length/CHUNK));
+    for(let i=0;i<n;i++) await CLOUD.db.doc(`${CLOUD.base}/c_${gen}_${i}`).set({g:gen,i,s:b64.slice(i*CHUNK,(i+1)*CHUNK)});
+    const at=localSavedAt; await CLOUD.db.doc(CLOUD.base+'/state').set({v:1,gen,n,hash,savedAt:at,bytes:b64.length});
+    CLOUD.hash=hash; setCloud('saved',at);
+    // remove pieces of older saves
+    try{ const old=await CLOUD.db.collection(CLOUD.base).where('g','!=',gen).get(); for(const d of old.docs){ if(d.id!=='state'&&d.id.startsWith('c_')) await CLOUD.db.doc(CLOUD.base+'/'+d.id).delete(); } }catch(e){ console.warn('cleanup',e); }
+  }catch(e){ console.warn('cloud save',e);
+    if(e&&e.code==='quota_exceeded'){ setCloud('full'); if(!CLOUD.warned){ CLOUD.warned=true; toast('계정 저장 공간이 부족해 이 브라우저에만 저장했습니다. 쓰지 않는 파일을 지우면 다시 계정에 저장됩니다.'); } }
+    else if(e&&(e.code==='revoked'||e.code==='not_granted'||e.code==='invalid_argument')){ CLOUD.ready=false; setCloud('local'); }
+    else { setCloud('error'); setTimeout(()=>cloudSave(),15000); }
+  }finally{ CLOUD.busy=false; if(CLOUD.again){ CLOUD.again=false; cloudSave(); } }
+}
+
+function afterLoad(){
+  if(S.cyc.src>=cycSources().length) S.cyc.src=0;
+  if(S.vp.src>=vpSources().length) S.vp.src=0;
+  if(S.tab==='cyc'&&!cycSources().length&&vpSources().length) S.tab='vp';
+  if(S.tab==='vp'&&!vpSources().length&&cycSources().length) S.tab='cyc';
+  renderFilebar(); renderAll(); persistData();
+}
+
+
+function syncFileName(){ const f=[...new Set(S.sources.map(s=>s.file))]; S.fileName=f.length?f.join(', '):''; }
+let UNDO=null;
+function snapshot(){ UNDO={sources:S.sources.map(s=>Object.assign({},s,{cells:s.cells&&s.cells.slice(),curves:s.curves&&s.curves.slice()})),cs:S.cyc.src,vs:S.vp.src,isSample:S.isSample}; }
+function undo(){ if(!UNDO) return; S.sources=UNDO.sources; S.cyc.src=UNDO.cs; S.vp.src=UNDO.vs; S.isSample=UNDO.isSample; UNDO=null; syncFileName(); afterLoad(); toast('되돌렸습니다.'); }
+function removeSources(pred,msg){ snapshot(); const curC=cycSources()[S.cyc.src], curV=vpSources()[S.vp.src];
+  S.sources=S.sources.filter(s=>!pred(s)); if(!S.sources.length) S.isSample=false;
+  const ci=cycSources().indexOf(curC), vi=vpSources().indexOf(curV); S.cyc.src=ci>=0?ci:0; S.vp.src=vi>=0?vi:0;
+  syncFileName(); afterLoad(); toast(msg,{label:'되돌리기',fn:undo}); }
+function removeData(kind,group,cell){ const vs=kind==='cyc'?virtCells():virtCurves();
+  const hit=vs.filter(v=>cell!=null?(kind==='cyc'?v.name:v.cell)===cell:v.group===group); if(!hit.length) return; snapshot();
+  const by=new Map(); hit.forEach(v=>{ if(!by.has(v._src)) by.set(v._src,new Set()); by.get(v._src).add(v._o); });
+  for(const [src,set] of by){ if(kind==='cyc') src.cells=src.cells.filter(c=>!set.has(c)); else src.curves=src.curves.filter(c=>!set.has(c)); }
+  if(S.sources.some(s=>!(s.cells||s.curves||[]).length)){ S.sources=S.sources.filter(s=>(s.cells||s.curves||[]).length); syncFileName(); }
+  afterLoad(); toast((cell!=null?'셀':'그룹')+' 데이터를 삭제했습니다.',{label:'되돌리기',fn:undo}); }
+$('#filebar').addEventListener('click',e=>{
+  const f=e.target.closest('[data-delfile]'); if(f){ const name=f.dataset.delfile; removeSources(s=>s.file===name,`"${name}"을(를) 삭제했습니다.`); return; }
+  const d=e.target.closest('[data-delsrc]'); if(d){ const src=S.sources[+d.dataset.delsrc]; if(src) removeSources(s=>s===src,`"${src.name}" 시트를 삭제했습니다.`); return; }
+  if(e.target.closest('#bClear')) removeSources(()=>true,'불러온 데이터를 모두 지웠습니다.');
+});
+
+/* ---------------- .cex files (same reader as 셀 데이터 변환기) ---------------- */
+function ordinal(n){ const v=n%100; return n+((v>=11&&v<=13)?'th':({1:'st',2:'nd',3:'rd'}[n%10]||'th')); }
+function cexRate(P){ const m=String(P.name||'').match(/(\d+(?:\.\d+)?)\s*C(?![a-z])/i); return m?(+m[1]):1; }
+function cexToSources(c,opt,i){
+  const P=c.P, lot=(opt.lots[i]||c.name.replace(/\.[^.]+$/,'')).trim(), mass=+opt.mass[i]||0, nf=opt.nForm, k=mass?1000/mass:1;
+  const unit=v=>v==null?null:v*k; const file=c.name, rate=cexRate(P);
+  const sum=Cex.cycleSummary(P).filter(s=>s.chg!=null||s.dis!=null);
+  const baseC=sum[Math.min(nf,sum.length-1)]; const base=baseC&&baseC.dis!=null?baseC.dis:null;
+  const pts=sum.filter((s,j)=>j>=nf).map((s,j)=>{ const ch=unit(s.chg), di=unit(s.dis); return [j+1,ch,di,(s.chg>0&&s.dis!=null)?s.dis/s.chg*100:null,(base&&s.dis!=null)?s.dis/base*100:null]; });
+  const cyc={kind:'cycle',name:'Cycle',file,cells:[{name:lot,exp:P.name||'',group:BatParse.groupKey(lot),pts}]};
+  const curves=[];
+  const byC=new Map(); for(const st of P.steps){ if(!st.recs.length||(st.kind!=='chg'&&st.kind!=='dis')) continue; const e=byC.get(st.cycle)||{chg:[],dis:[]}; e[st.kind].push(...st.recs); byC.set(st.cycle,e); }
+  [...byC.keys()].sort((a,b)=>a-b).forEach(cn=>{ const e=byC.get(cn); const label=cn<=nf?`Formation_${cn}`:`${rate}C_${ordinal(cn-nf)}`;
+    const seg=a=>a.map(r=>[+(r[3]*k).toFixed(5),+r[1].toFixed(5)]); const segs=[]; if(e.chg.length) segs.push(seg(e.chg)); if(e.dis.length) segs.push(seg(e.dis));
+    if(segs.length) curves.push({cell:lot,group:BatParse.groupKey(lot),label,segs,cycle:cn}); });
+  const prof={kind:'profile',name:'Profile',file,curves};
+  return [normalize(cyc),normalize(prof)].filter(s=>(s.cells||s.curves).length);
+}
+function applyCexDefaults(opt,list){
+  // show a readable set of profile cycles by default: formation, 1st, then every 10th (every 50th past 100)
+  const nf=opt.nForm; const keep=n=>n===1||(n<=100?n%10===0:n%50===0);
+  list.forEach(c=>{ const rate=cexRate(c.P); for(let cn=1;cn<=c.P.cycles;cn++){ const label=cn<=nf?`Formation_${cn}`:`${rate}C_${ordinal(cn-nf)}`; if(cn<=nf||keep(cn-nf)) delete S.vp.laboff[label]; else S.vp.laboff[label]=1; } });
+  // axis titles follow the unit when they are still the defaults
+  const g=opt.mass.some(v=>+v>0);
+  if(/^Discharge Capacity \(mAh(\/g)?\)$/.test(S.axes.dis.yt)) S.axes.dis.yt=g?'Discharge Capacity (mAh/g)':'Discharge Capacity (mAh)';
+  if(/^ ?Capacity \(mAh(\/g)?\)$/.test(S.axes.vp.xt)) S.axes.vp.xt=g?' Capacity (mAh/g)':' Capacity (mAh)';
+  S.cex.nForm=nf; S.cex.lastMass=opt.mass[0]||''; persist();
+}
+function askCex(list){
+  return new Promise(res=>{
+    const m=modal(`<h2>충방전기 원본 파일 불러오기</h2>
+      <p class="hint">셀 데이터 변환기와 같은 방식으로 읽어서 바로 그래프를 그립니다. 질량을 넣으면 mAh/g, 비우면 mAh 단위로 그립니다.</p>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) 110px;gap:6px 10px;align-items:center;font-size:13px">
+        <b>파일</b><b>셀 이름 (범례·그룹)</b><b>질량 (mg)</b>
+        ${list.map((c,i)=>{ const fmt={wrd:'WonATech .wrd',toyo:'TOYO'}[c.P.format]||'.cex'; const w=c.P.meta&&c.P.meta.cellWeight>0?String(+(c.P.meta.cellWeight*1000).toFixed(4)):''; return `<span style="word-break:break-all">${esc(c.label||c.name)}<br><small class="hint">${fmt} · ${esc(c.P.name||'')} · ${c.P.cycles}사이클</small></span><input type="text" id="cxLot${i}" value="${esc((c.label||c.name).replace(/\.(cex|wrd|toyo)$/i,''))}"><input type="number" id="cxMass${i}" min="0" step="any" placeholder="선택" value="${esc(w||S.cex.lastMass||'')}"${w?' title="파일에 적힌 활물질 무게"':''}>`; }).join('')}
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:8px"><span style="font-size:13px">앞쪽 Formation 사이클 수</span><input type="number" id="cxNf" min="0" step="1" value="${+S.cex.nForm||0}" style="width:70px"><span class="hint">Formation 사이클은 Cycle 그래프에서 빼고, 그다음부터 1사이클로 셉니다.</span></div>
+      <p class="hint">셀 이름 끝의 #1, #2…를 빼고 같은 이름끼리 한 색 그룹이 됩니다. 예: "Full cell 3차 #1", "Full cell 3차 #2"</p>
+      <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn primary" type="button" id="cxGo">그래프 그리기</button></div>`,mm=>{
+        mm.querySelector('#cxGo').addEventListener('click',()=>{ const opt={lots:list.map((_,i)=>mm.querySelector('#cxLot'+i).value),mass:list.map((_,i)=>mm.querySelector('#cxMass'+i).value),nForm:Math.max(0,Math.floor(+mm.querySelector('#cxNf').value||0))}; done=true; mm.remove(); res(opt); });
+      });
+    let done=false; const obs=new MutationObserver(()=>{ if(!document.body.contains(m)){ obs.disconnect(); if(!done) res(null); } }); obs.observe(document.body,{childList:true});
+  });
+}
+/* ---------------- file bar ---------------- */
+function renderFilebar(){
+  const fb=$('#filebar');
+  if(!S.sources.length){ fb.innerHTML='<span class="src">불러온 데이터가 없습니다. <b>새 파일로 바꾸기</b>를 누르거나 파일을 여기로 끌어다 놓으세요. </span><span style="margin-left:auto">'+cloudBadge()+'</span>'; return; }
+  const files=[...new Set(S.sources.map(s=>s.file))];
+  fb.innerHTML=files.map(f=>`<span class="fgrp"><span class="src">${S.isSample?'예시 · ':''}<b>${esc(f)}</b><button class="x" type="button" data-delfile="${esc(f)}" title="이 파일 전체 삭제" aria-label="${esc(f)} 삭제">×</button></span>`+
+    S.sources.map((s,i)=>s.file!==f?'':`<span class="chip"><span class="k">${s.kind==='cycle'?'cycle':'profile'}</span><b>${esc(s.name)}</b> ${s.kind==='cycle'?s.cells.length+'셀':s.curves.length+'곡선'}<button class="x" type="button" data-delsrc="${i}" title="이 시트 삭제" aria-label="${esc(s.name)} 삭제">×</button></span>`).join('')+'</span>').join('')+
+    `<span style="margin-left:auto" class="row">${cloudBadge()}<button class="btn sm" type="button" id="bClear">모두 지우기</button></span>`;
+}
+
+
+/* ---------------- several sheets at once (compare) ---------------- */
+const srcKey=s=>(s.file||'')+'\u0001'+s.name;
+function activeSrcs(t){ const all=t==='cyc'?cycSources():vpSources(); const T=S[t]; const sel=(T.sel||[]).map(k=>all.find(s=>srcKey(s)===k)).filter(Boolean); if(sel.length) return sel; const one=all[T.src]||all[0]; return one?[one]:[]; }
+function labelKey(l){ return String(l==null?'':l).toLowerCase().replace(/\(.*?\)/g,'').replace(/[\s.]/g,'').replace(/^(\d+(?:\.\d+)?)c+_/,(m,r)=>(+r)+'c_'); }
+function compareBy(t){ return activeSrcs(t).length>1&&S[t].cmpBy!=='name'?'sheet':'name'; }
+function virtCells(){
+  const ss=activeSrcs('cyc'), multi=ss.length>1, by=compareBy('cyc'); const cnt={};
+  ss.forEach(s=>s.cells.forEach(c=>{cnt[c.name]=(cnt[c.name]||0)+1;}));
+  const out=[]; ss.forEach(s=>s.cells.forEach(c=>{ const name=(multi&&cnt[c.name]>1)?`${c.name} · ${srcLabel(s)}`:c.name;
+    out.push(Object.assign({},c,{name,group:by==='sheet'?srcLabel(s):c.group,exp:by==='sheet'?(c.exp||''):c.exp,_src:s,_o:c})); }));
+  return out;
+}
+function virtCurves(){
+  const ss=activeSrcs('vp'), multi=ss.length>1, by=compareBy('vp'); const cnt={}, seen={};
+  ss.forEach(s=>{ const cells=new Set(s.curves.map(c=>c.cell)); cells.forEach(n=>{cnt[n]=(cnt[n]||0)+1;}); });
+  const canon={}; ss.forEach(s=>s.curves.forEach(c=>{ const k=labelKey(c.label); if(!(k in canon)) canon[k]=c.label; }));
+  const out=[]; ss.forEach(s=>s.curves.forEach(c=>{ const cell=(multi&&cnt[c.cell]>1)?`${c.cell} · ${srcLabel(s)}`:c.cell;
+    out.push(Object.assign({},c,{cell,label:canon[labelKey(c.label)],group:by==='sheet'?srcLabel(s):c.group,_src:s,_o:c})); }));
+  return out;
+}
+function srcPicker(t,srcs){
+  if(srcs.length<=1) return `<select id="${t==='cyc'?'cSrc':'vSrc'}">${srcs.map((s,i)=>`<option value="${i}" selected>${esc(srcLabel(s))}</option>`).join('')||'<option>없음</option>'}</select>`;
+  const act=new Set(activeSrcs(t).map(srcKey));
+  return `<div class="groups" style="max-height:170px">${srcs.map(s=>`<label class="row" style="font-size:12.5px;align-items:flex-start"><input type="checkbox" data-srck="${esc(srcKey(s))}" ${act.has(srcKey(s))?'checked':''}> <span>${esc(srcLabel(s))} <span class="hint">${s.kind==='cycle'?s.cells.length+'셀':s.curves.length+'곡선'}</span></span></label>`).join('')}</div>`+
+    (act.size>1?`<span class="hint">${act.size}개 시트를 한 그래프에 겹쳐 비교합니다.</span>${seg(t==='cyc'?'cCmp':'vCmp',[['sheet','시트별 색'],['name','셀 이름별 색']],S[t].cmpBy==='name'?'name':'sheet')}`:`<span class="hint">여러 개를 체크하면 한 그래프에 겹쳐 비교합니다.</span>`);
+}
+/* ---------------- data → chart specs ---------------- */
+function groupsOf(items,keyFn){ const m=new Map(); for(const it of items){ const k=keyFn(it); if(!m.has(k)) m.set(k,[]); m.get(k).push(it); } return m; }
+function cycleSets(){
+  const vcells=virtCells(); if(!vcells.length) return [];
+  const gm=groupsOf(vcells,c=>c.group); let order=0;
+  const groups=[...gm.entries()].map(([key,cells])=>({key,cells,color:groupColor(key,order++),exp:cells[0].exp}));
+  const on=c=>!S.cyc.off[c.name]; const gon=g=>!S.cyc.goff[g.key];
+  const mk=(g,c,i,n)=>({cell:c,name:dispName(c.name),gcolor:g.color,color:shade(g.color,i,n,S.cyc.shadeMode)});
+  if(S.cyc.view==='merge'){ const ser=[]; groups.filter(gon).forEach(g=>{ const cs=g.cells.filter(on); const n=g.cells.length; g.cells.forEach((c,i)=>{ if(on(c)) ser.push(mk(g,c,i,n)); }); });
+    return ser.length?[{title:'선택한 셀 비교',sub:ser.length+'개 셀',color:null,series:ser}]:[]; }
+  return groups.filter(gon).map(g=>{ const n=g.cells.length; const ser=[]; g.cells.forEach((c,i)=>{ if(on(c)) ser.push(mk(g,c,i,n)); }); return {title:g.key,sub:g.exp||'',color:g.color,series:ser}; }).filter(s=>s.series.length);
+}
+const CK=[['dis',2,'circle'],['eff',3,'square'],['ret',4,'diamond']];
+function cycleCharts(set){
+  return CK.map(([kind,col,marker])=>{
+    const series=set.series.map(s=>({name:s.name,color:s.color,marker,line:S.cyc.line,every:S.cyc.every,cell:s.cell,gcolor:s.gcolor,col,segs:[s.cell.pts.map(p=>[p[0],p[col]])]}));
+    return {kind,look:'cycle',series};
+  });
+}
+function vpLabel(lbl){ const m=String(lbl).match(/^(\d+(?:\.\d+)?)\s*C+\s*_\s*(\d+)\s*(st|nd|rd|th)?/i); if(m) return `${(+m[1]).toFixed(1)} C ${m[2]}${m[3]||'th'} profile`; return String(lbl); }
+function vpTitle(lbl){ return (S.axes.vp.title||'{label}').replace('{label}',vpLabel(lbl)); }
+function vpModel(){
+  const vcurves=virtCurves(); if(!vcurves.length) return null; const src=null;
+  const gm=groupsOf(vcurves,c=>c.group); let order=0;
+  const groups=[...gm.entries()].map(([key,curves])=>{ const cells=[]; const seen=new Set(); for(const c of curves){ if(!seen.has(c.cell)){seen.add(c.cell);cells.push(c.cell);} } return {key,curves,cells,color:groupColor(key,order++)}; });
+  const labels=[]; const ls=new Set(); for(const c of vcurves){ if(!ls.has(c.label)){ls.add(c.label);labels.push(c.label);} }
+  return {src,groups,labels};
+}
+function vpSeries(g,c,color){ const segs=S.vp.connect?[[].concat(...c.segs)]:c.segs; return {name:dispName(c.cell),color,marker:'none',line:true,lineW:S.vp.lineW,segs,curve:c,gcolor:g.color}; }
+function vpSets(){
+  const M=vpModel(); if(!M) return [];
+  const on=n=>!S.vp.off[n], gon=g=>!S.vp.goff[g.key], lon=l=>!S.vp.laboff[l];
+  if(S.vp.mode==='cell'){
+    const sets=[]; const all=[]; let nCells=0;
+    for(const g of M.groups.filter(gon)){ const charts=[]; const cellsOn=g.cells.filter(on);
+      cellsOn.forEach((cell,ci)=>{ const cs=g.curves.filter(c=>c.cell===cell&&lon(c.label)); const n=cs.length; if(!n) return; nCells++;
+        charts.push({kind:'vp',look:'vp',title:dispName(cell),series:cs.map((c,i)=>Object.assign(vpSeries(g,c,ramp(g.color,i,n)),{name:c.label}))});
+        // the same curves for the combined chart: each cell keeps its own shade of the group colour, cycles go dark → light
+        const base=shade(g.color,g.cells.indexOf(cell),g.cells.length,S.vp.shadeMode);
+        cs.forEach((c,i)=>all.push(Object.assign(vpSeries(g,c,ramp(base,i,n)),{name:`${dispName(cell)} · ${c.label}`}))); });
+      if(charts.length) sets.push({title:g.key,sub:'셀별 사이클 변화',color:g.color,charts}); }
+    if(S.vp.cellAll&&nCells>1&&all.length) sets.unshift({title:'모든 셀 함께',sub:`${nCells}개 셀 · 사이클 변화 겹쳐 보기`,color:null,charts:[{kind:'vp',look:'vp',title:'Voltage Profile _ 모든 셀',series:all}]});
+    return sets;
+  }
+  const build=(gs,title,color)=>{ const charts=[]; for(const lab of M.labels.filter(lon)){ const ser=[]; for(const g of gs){ const n=g.cells.length; g.cells.forEach((cell,i)=>{ if(!on(cell)) return; const c=g.curves.find(x=>x.cell===cell&&x.label===lab); if(c) ser.push(vpSeries(g,c,shade(g.color,i,n,S.vp.shadeMode))); }); }
+      if(ser.length) charts.push({kind:'vp',look:'vp',title:vpTitle(lab),series:ser}); } return charts.length?{title,sub:charts.length+'개 사이클',color,charts}:null; };
+  if(S.vp.view==='merge'){ const s=build(M.groups.filter(gon),'선택한 셀 비교',null); return s?[s]:[]; }
+  return M.groups.filter(gon).map(g=>build([g],g.key,g.color)).filter(Boolean);
+}
+function axesFor(kind,series){ const a=S.axes[kind]; const au=autoAxes(kind,series); if(a.auto) return au;
+  const f=(v,d)=>isNum(+v)&&v!==''&&v!=null?+v:d; const x={min:f(a.xmin,au.x.min),max:f(a.xmax,au.x.max),step:f(a.xstep,au.x.step)}, y={min:f(a.ymin,au.y.min),max:f(a.ymax,au.y.max),step:f(a.ystep,au.y.step)};
+  if(!(x.max>x.min)) x.max=x.min+1; if(!(y.max>y.min)) y.max=y.min+1; if(!(x.step>0)) x.step=niceStep(x.max-x.min,8); if(!(y.step>0)) y.step=niceStep(y.max-y.min,8);
+  if((x.max-x.min)/x.step>200) x.step=niceStep(x.max-x.min,10); if((y.max-y.min)/y.step>200) y.step=niceStep(y.max-y.min,10); return {x,y}; }
+
+/* ---------------- rendering the sheets ---------------- */
+let CHARTS=[]; // {svg, name}
+function chartCard(ch,fileBase,setTitle){
+  const a=S.axes[ch.kind]; const axes=axesFor(ch.kind,ch.series);
+  const isV=ch.look==='vp';
+  const spec={look:ch.look,kind:ch.kind,title:isV?ch.title:a.title,xTitle:a.xt,yTitle:a.yt,note:(isV?S.vp.note:S.cyc.note),axes,series:ch.series,legend:a.legend,fontScale:(isV?S.vp.font:S.cyc.font),txt:(isV?S.vp.txt:S.cyc.txt)||{}};
+  const r=renderChart(spec);
+  const idx=CHARTS.length; CHARTS.push({svg:r.svg,name:fileBase,hit:r.hit,W:r.W,H:r.H,spec,noteBox:r.noteBox,legendBox:r.legendBox,set:setTitle});
+  return `<figure class="card" data-i="${idx}">${r.svg}<div class="acts"><button type="button" data-a="copy">복사</button><button type="button" data-a="png">PNG</button><button type="button" data-a="svg">SVG</button></div></figure>`;
+}
+const safe=s=>String(s).replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,' ').trim().slice(0,80);
+function renderSheets(){
+  const el=$('#sheets'); CHARTS=[]; UID=0;
+  const isC=S.tab==='cyc';
+  const srcs=isC?cycSources():vpSources();
+  if(!srcs.length){ el.innerHTML=`<div class="empty">${isC?'사이클 데이터(Chg. / Dis. / Effi. / Ret. 머리글이 있는 시트)':'전압 프로파일 데이터(mAh/g · Volt (V) 머리글이 있는 시트)'}가 없습니다.<br><b>새 파일로 바꾸기</b>나 <b>파일 추가하기</b>로 엑셀 파일을 불러오거나 "엑셀에서 붙여넣기"를 사용하세요.</div>`; return; }
+  const sets=isC?cycleSets():vpSets();
+  let h=`<div class="toolbar"><span class="meta">${sets.length}개 묶음 · 그래프에 마우스를 올리면 값이 보입니다</span><span class="row" style="flex-wrap:wrap"><button class="btn sm primary" type="button" id="bXlsx">엑셀로 저장 (.xlsx · 데이터+그래프)</button><button class="btn sm" type="button" id="bCsv">CSV로 저장 (데이터)</button><button class="btn sm" type="button" id="bZip">그래프 이미지 (ZIP)</button></span></div>`;
+  if(S.isSample) h+=`<div class="banner">지금 보이는 그래프는 보내주신 엑셀 파일의 데이터로 미리 채운 예시입니다. <b>새 파일로 바꾸기</b>로 새 측정 파일을 불러오면 같은 형식으로 바로 그려집니다.</div>`;
+  if(!sets.length) h+=`<div class="empty">왼쪽에서 표시할 그룹이나 셀을 하나 이상 선택하세요.</div>`;
+  for(const set of sets){
+    const charts=isC?cycleCharts(set):set.charts;
+    h+=`<section class="set"><h3>${set.color?`<span class="dot" style="background:${set.color}"></span>`:''}${esc(set.title)} ${set.sub?`<small>${esc(set.sub)}</small>`:''}</h3><div class="charts ${isC?'':'vp'}">`;
+    for(const ch of charts){ const base=safe(set.title+' - '+(isC?S.axes[ch.kind].title:ch.title)); h+=chartCard(ch,base,set.title); }
+    h+='</div></section>';
+  }
+  el.innerHTML=h;
+  const z=$('#bZip'); if(z) z.onclick=saveZip;
+  const bx=$('#bXlsx'); if(bx) bx.onclick=saveXlsx;
+  const bc=$('#bCsv'); if(bc) bc.onclick=saveCsv;
+}
+
+/* ---------------- control rail ---------------- */
+function seg(id,opts,val){ return `<div class="seg" id="${id}">`+opts.map(([v,t])=>`<button type="button" data-v="${v}" aria-pressed="${v===val}">${t}</button>`).join('')+'</div>'; }
+function axisBox(kind,label,open){
+  const a=S.axes[kind];
+  const lg=[['top','위 (가로)'],['bottom','아래 (가로)'],['bottom-left','왼쪽 아래'],['top-right','오른쪽 위'],['none','숨김']];
+  const v=k=>a[k]==null?'':a[k];
+  return `<details class="ax" data-k="${kind}" ${open?'open':''}><summary>${label}</summary><div class="in">
+   <div class="fld"><span class="lbl">제목${kind==='vp'?' ({label}=사이클)':''}</span><input type="text" data-f="title" id="ax-${kind}-title" value="${esc(a.title)}"></div>
+   <div class="fld"><span class="lbl">X축 제목</span><input type="text" data-f="xt" id="ax-${kind}-xt" value="${esc(a.xt)}"></div>
+   <div class="fld"><span class="lbl">Y축 제목</span><input type="text" data-f="yt" id="ax-${kind}-yt" value="${esc(a.yt)}"></div>
+   <label class="row" style="font-size:13px"><input type="checkbox" data-f="auto" id="ax-${kind}-auto" ${a.auto?'checked':''}> 축 범위 자동 (엑셀 기본값 기준)</label>
+   <div class="g3"><span></span><span>최소</span><span>최대</span><span>간격</span>
+     <span>X</span><input type="number" step="any" data-f="xmin" id="ax-${kind}-xmin" value="${v('xmin')}" ${a.auto?'disabled':''}><input type="number" step="any" data-f="xmax" id="ax-${kind}-xmax" value="${v('xmax')}" ${a.auto?'disabled':''}><input type="number" step="any" data-f="xstep" id="ax-${kind}-xstep" value="${v('xstep')}" ${a.auto?'disabled':''}>
+     <span>Y</span><input type="number" step="any" data-f="ymin" id="ax-${kind}-ymin" value="${v('ymin')}" ${a.auto?'disabled':''}><input type="number" step="any" data-f="ymax" id="ax-${kind}-ymax" value="${v('ymax')}" ${a.auto?'disabled':''}><input type="number" step="any" data-f="ystep" id="ax-${kind}-ystep" value="${v('ystep')}" ${a.auto?'disabled':''}></div>
+   <div class="fld"><span class="lbl">범례 위치</span><select data-f="legend" id="ax-${kind}-legend">${lg.map(([k,t])=>`<option value="${k}" ${a.legend===k?'selected':''}>${t}</option>`).join('')}</select></div>
+  </div></details>`;
+}
+function groupList(T,groups){ // groups: [{key,color,cells:[names]}]
+  return `<div class="groups">`+groups.map(g=>{ const gOn=!T.goff[g.key]; const n=g.cells.length;
+    return `<div class="grp" data-g="${esc(g.key)}"><div class="gh"><input type="checkbox" data-gon ${gOn?'checked':''} aria-label="그룹 표시"><input type="color" data-gc value="${g.color}" aria-label="그룹 색"><span class="nm" title="${esc(g.key)}">${esc(g.key)}</span><span class="cnt">${n}</span><button class="tg" type="button" data-tg aria-label="셀 목록">▾</button><button class="x" type="button" data-gdel title="이 그룹 데이터 삭제" aria-label="그룹 삭제">×</button></div>
+    <div class="cells" hidden>${g.cells.map((c,i)=>`<div class="c"><input type="checkbox" data-con="${esc(c)}" ${!T.off[c]?'checked':''} aria-label="셀 표시"><span class="sw" style="border-color:${shade(g.color,i,n,T.shadeMode)}"></span><input type="text" data-cn="${esc(c)}" value="${esc(dispName(c))}" aria-label="범례 이름"><button class="x" type="button" data-cdel="${esc(c)}" title="이 셀 데이터 삭제" aria-label="셀 삭제">×</button></div>`).join('')}</div></div>`; }).join('')+`</div>`;
+}
+
+const TXT_ROWS=[['title','제목','title'],['note','조건 메모','note'],['xt','X축 제목','xt'],['yt','Y축 제목','yt'],['tick','눈금 숫자','tick'],['leg','범례','leg']];
+function textBox(T,look){
+  const L=LOOK[look], k=T.font||1; T.txt=T.txt||{};
+  const v=(key,f)=>{ const o=T.txt[key]; return o&&o[f]!=null&&o[f]!==''?o[f]:''; };
+  return `<details class="ax" id="txtBox" ${T.txtOpen?'open':''}><summary>글자 크기 · 위치</summary><div class="in">
+    <div class="txtgrid"><span></span><span>크기 (pt)</span><span>좌우 (px)</span><span>상하 (px)</span>
+    ${TXT_ROWS.map(([key,name,lk])=>`<span>${name}</span><input type="number" step="0.5" min="4" data-tk="${key}" data-tf="sz" value="${v(key,'sz')}" placeholder="${(+(L[lk]*k).toFixed(1))}" aria-label="${name} 크기"><input type="number" step="1" data-tk="${key}" data-tf="dx" value="${v(key,'dx')}" placeholder="0" aria-label="${name} 좌우 이동"><input type="number" step="1" data-tk="${key}" data-tf="dy" value="${v(key,'dy')}" placeholder="0" aria-label="${name} 상하 이동">`).join('')}
+    </div>
+    <span class="hint">빈칸은 기본값입니다. 좌우는 +가 오른쪽, 상하는 +가 아래쪽입니다. 눈금 숫자의 좌우는 Y축 숫자, 상하는 X축 숫자를 옮깁니다.</span>
+    <button class="btn sm" type="button" id="txtReset">기본값으로</button>
+  </div></details>`;
+}
+function renderRail(){
+  const r=$('#rail'); const isC=S.tab==='cyc';
+  if(isC){
+    const srcs=cycSources(); const vcells=virtCells();
+    const groups=[...groupsOf(vcells,c=>c.group).entries()].map(([key,cells],i)=>({key,color:groupColor(key,i),cells:cells.map(c=>c.name)}));
+    r.innerHTML=`
+      <div class="fld"><span class="lbl">데이터 시트</span>${srcPicker('cyc',srcs)}</div>
+      <div class="fld"><span class="lbl">보기 방식</span>${seg('cView',[['group','그룹별 (같은 색끼리)'],['merge','하나로 합쳐 비교']],S.cyc.view)}</div>
+      <div class="fld"><div class="lblrow"><span class="lbl">그룹 · 셀</span><span class="allbtns"><button class="btn sm" type="button" data-all="grp-on">전체 선택</button><button class="btn sm" type="button" data-all="grp-off">전체 해제</button></span></div>${groupList(S.cyc,groups)}<span class="hint">셀 이름 끝의 #1, #2…를 빼고 같은 이름끼리 한 색 그룹이 됩니다. 이름 칸을 고치면 범례에 반영됩니다.</span></div>
+      <div class="fld"><span class="lbl">그래프 위 조건 메모</span><textarea id="cNote">${esc(S.cyc.note)}</textarea></div>
+      <div class="fld"><span class="lbl">표시</span>
+        <label class="row"><input type="checkbox" id="cLine" ${S.cyc.line?'checked':''}> 마커를 선으로 연결</label>
+        <div class="row"><span style="font-size:13px;flex:none">마커 간격</span><input type="number" id="cEvery" min="1" step="1" value="${S.cyc.every}" style="width:70px"><span class="hint">1 = 모든 사이클</span></div>
+        <div class="row"><span style="font-size:13px;flex:none">그룹 안 색</span><select id="cShade"><option value="excel" ${S.cyc.shadeMode==='excel'?'selected':''}>진하기 차이 (엑셀과 동일)</option><option value="same" ${S.cyc.shadeMode==='same'?'selected':''}>모두 같은 색</option></select></div>
+        <div class="row"><span style="font-size:13px;flex:none">글자 크기</span><input type="number" id="cFont" min="0.6" max="1.6" step="0.05" value="${S.cyc.font}" style="width:80px"><span class="hint">배율</span></div>
+      </div>
+      <div class="fld"><span class="lbl">글자</span>${textBox(S.cyc,'cycle')}</div>
+      <div class="fld"><span class="lbl">그래프 설정</span>${axisBox('dis','Discharge Capacity')}${axisBox('eff','Efficiency')}${axisBox('ret','Retention')}</div>
+      <button class="btn sm" type="button" id="bHelp">입력 형식 안내</button>`;
+  } else {
+    const srcs=vpSources(); const M=vpModel();
+    const groups=M?M.groups.map(g=>({key:g.key,color:g.color,cells:g.cells})):[];
+    r.innerHTML=`
+      <div class="fld"><span class="lbl">데이터 시트</span>${srcPicker('vp',srcs)}</div>
+      <div class="fld"><span class="lbl">비교 방식</span>${seg('vMode',[['cycle','사이클별 (셀 겹쳐 보기)'],['cell','셀별 (사이클 변화)']],S.vp.mode)}</div>
+      ${S.vp.mode==='cycle'?`<div class="fld"><span class="lbl">보기 방식</span>${seg('vView',[['group','그룹별 (같은 색끼리)'],['merge','하나로 합쳐 비교']],S.vp.view)}</div>`:`<div class="fld"><label class="row" style="font-size:13px;align-items:flex-start"><input type="checkbox" id="vCellAll" ${S.vp.cellAll?'checked':''}> <span>모든 셀을 한 그래프에도 함께 그리기<br><span class="hint">셀별 그래프 위에, 선택한 셀의 사이클 곡선을 모두 겹친 그래프를 하나 더 보여 줍니다.</span></span></label></div>`}
+      <div class="fld"><div class="lblrow"><span class="lbl">사이클</span><span class="allbtns"><button class="btn sm" type="button" data-all="lab-on">전체 선택</button><button class="btn sm" type="button" data-all="lab-off">전체 해제</button></span></div><div class="groups" style="max-height:160px">${M?M.labels.map(l=>`<label class="row" style="font-size:12.5px"><input type="checkbox" data-lab="${esc(l)}" ${!S.vp.laboff[l]?'checked':''}> ${esc(l)}</label>`).join(''):''}</div></div>
+      <div class="fld"><div class="lblrow"><span class="lbl">그룹 · 셀</span><span class="allbtns"><button class="btn sm" type="button" data-all="grp-on">전체 선택</button><button class="btn sm" type="button" data-all="grp-off">전체 해제</button></span></div>${groupList(S.vp,groups)}</div>
+      <div class="fld"><span class="lbl">그래프 위 조건 메모</span><textarea id="vNote">${esc(S.vp.note)}</textarea></div>
+      <div class="fld"><span class="lbl">표시</span>
+        <label class="row"><input type="checkbox" id="vConnect" ${S.vp.connect?'checked':''}> 충전 끝 → 방전 시작 연결선 그리기</label>
+        <div class="row"><span style="font-size:13px;flex:none">선 두께</span><input type="number" id="vLineW" min="0.5" max="5" step="0.25" value="${S.vp.lineW}" style="width:80px"><span class="hint">px</span></div>
+        <div class="row"><span style="font-size:13px;flex:none">그룹 안 색</span><select id="vShade"><option value="excel" ${S.vp.shadeMode==='excel'?'selected':''}>진하기 차이 (엑셀과 동일)</option><option value="same" ${S.vp.shadeMode==='same'?'selected':''}>모두 같은 색</option></select></div>
+        <div class="row"><span style="font-size:13px;flex:none">글자 크기</span><input type="number" id="vFont" min="0.6" max="1.6" step="0.05" value="${S.vp.font}" style="width:80px"><span class="hint">배율</span></div>
+      </div>
+      <div class="fld"><span class="lbl">글자</span>${textBox(S.vp,'vp')}</div>
+      <div class="fld"><span class="lbl">그래프 설정</span>${axisBox('vp','Voltage profile',true)}</div>
+      <button class="btn sm" type="button" id="bHelp">입력 형식 안내</button>`;
+  }
+  bindRail();
+}
+function bindRail(){
+  const T=S.tab==='cyc'?S.cyc:S.vp;
+  const on=(id,ev,fn)=>{const e=document.getElementById(id); if(e) e.addEventListener(ev,fn);};
+  const segBind=(id,key,rail)=>{ const e=document.getElementById(id); if(!e) return; e.addEventListener('click',ev=>{ const b=ev.target.closest('button'); if(!b) return; T[key]=b.dataset.v; persist(); rail?renderAll():renderSheetsOnly(); }); };
+  if(S.tab==='cyc'){
+    on('cSrc','change',e=>{S.cyc.src=+e.target.value;S.cyc.sel=[];renderAll();});
+    segBind('cView','view',true);
+    on('cNote','input',e=>{S.cyc.note=e.target.value;persist();deb();});
+    on('cLine','change',e=>{S.cyc.line=e.target.checked;persist();renderSheetsOnly();});
+    on('cEvery','change',e=>{S.cyc.every=Math.max(1,Math.round(+e.target.value||1));persist();renderSheetsOnly();});
+    on('cShade','change',e=>{S.cyc.shadeMode=e.target.value;persist();renderAll();});
+    on('cFont','change',e=>{S.cyc.font=Math.min(1.6,Math.max(.6,+e.target.value||1));persist();renderSheetsOnly();});
+  } else {
+    on('vSrc','change',e=>{S.vp.src=+e.target.value;S.vp.sel=[];renderAll();});
+    segBind('vMode','mode',true); segBind('vView','view',true);
+    on('vNote','input',e=>{S.vp.note=e.target.value;persist();deb();});
+    on('vConnect','change',e=>{S.vp.connect=e.target.checked;persist();renderSheetsOnly();});
+    on('vCellAll','change',e=>{S.vp.cellAll=e.target.checked;persist();renderSheetsOnly();});
+    on('vLineW','change',e=>{S.vp.lineW=Math.min(5,Math.max(.5,+e.target.value||2));persist();renderSheetsOnly();});
+    on('vShade','change',e=>{S.vp.shadeMode=e.target.value;persist();renderAll();});
+    on('vFont','change',e=>{S.vp.font=Math.min(1.6,Math.max(.6,+e.target.value||1));persist();renderSheetsOnly();});
+    document.querySelectorAll('[data-lab]').forEach(cb=>cb.addEventListener('change',e=>{ const l=e.target.dataset.lab; if(e.target.checked) delete S.vp.laboff[l]; else S.vp.laboff[l]=1; persist(); renderSheetsOnly(); }));
+  }
+  { const T=S.tab==='cyc'?S.cyc:S.vp; T.txt=T.txt||{};
+    document.querySelectorAll('[data-tk]').forEach(inp=>inp.addEventListener('input',()=>{ const key=inp.dataset.tk, f=inp.dataset.tf; const o=T.txt[key]||(T.txt[key]={}); if(inp.value===''||!isFinite(+inp.value)) delete o[f]; else o[f]=+inp.value; persist(); deb(); }));
+    const tb=document.getElementById('txtBox'); if(tb) tb.addEventListener('toggle',()=>{ T.txtOpen=tb.open; persist(); });
+    on('txtReset','click',()=>{ T.txt={}; document.querySelectorAll('[data-tk]').forEach(i=>i.value=''); persist(); renderSheetsOnly(); toast('글자 크기와 위치를 기본값으로 되돌렸습니다.'); }); }
+  document.querySelectorAll('[data-all]').forEach(b=>b.addEventListener('click',()=>{
+    const [what,mode]=b.dataset.all.split('-'); const on=mode==='on';
+    if(what==='lab'){ const M=vpModel(); if(M) M.labels.forEach(l=>{ if(on) delete S.vp.laboff[l]; else S.vp.laboff[l]=1; }); }
+    else { const T=S.tab==='cyc'?S.cyc:S.vp; document.querySelectorAll('.grp').forEach(g=>{ const k=g.dataset.g; if(on) delete T.goff[k]; else T.goff[k]=1; g.querySelectorAll('[data-con]').forEach(c=>{ const n=c.dataset.con; if(on) delete T.off[n]; else T.off[n]=1; }); }); }
+    persist(); renderAll(); }));
+  document.querySelectorAll('[data-srck]').forEach(cb=>cb.addEventListener('change',()=>{
+    const t=S.tab==='cyc'?'cyc':'vp'; const keys=[...document.querySelectorAll('[data-srck]')].filter(x=>x.checked).map(x=>x.dataset.srck);
+    if(!keys.length){ cb.checked=true; toast('시트를 하나 이상 골라 주세요.'); return; }
+    const before=(S[t].sel||[]).length; S[t].sel=keys; const all=t==='cyc'?cycSources():vpSources(); const i=all.findIndex(x=>srcKey(x)===keys[0]); if(i>=0) S[t].src=i;
+    if(keys.length>1&&before<2){ S[t].view='merge'; if(!S[t].cmpBy) S[t].cmpBy='sheet'; }
+    persist(); renderAll(); }));
+  segBind(S.tab==='cyc'?'cCmp':'vCmp','cmpBy',true);
+  document.querySelectorAll('.grp').forEach(g=>{ const key=g.dataset.g;
+    g.querySelector('[data-gon]').addEventListener('change',e=>{ if(e.target.checked) delete T.goff[key]; else T.goff[key]=1; persist(); renderSheetsOnly(); });
+    g.querySelector('[data-gc]').addEventListener('input',e=>{ S.colors[key]=e.target.value.toUpperCase(); persist(); deb(); });
+    g.querySelector('[data-gc]').addEventListener('change',()=>renderAll());
+    g.querySelector('[data-gdel]').addEventListener('click',()=>removeData(S.tab,key,null));
+    g.querySelectorAll('[data-cdel]').forEach(b=>b.addEventListener('click',()=>removeData(S.tab,key,b.dataset.cdel)));
+    g.querySelector('[data-tg]').addEventListener('click',e=>{ const c=g.querySelector('.cells'); c.hidden=!c.hidden; e.target.textContent=c.hidden?'▾':'▴'; });
+    g.querySelectorAll('[data-con]').forEach(cb=>cb.addEventListener('change',e=>{ const n=e.target.dataset.con; if(e.target.checked) delete T.off[n]; else T.off[n]=1; persist(); renderSheetsOnly(); }));
+    g.querySelectorAll('[data-cn]').forEach(inp=>inp.addEventListener('input',e=>{ const n=e.target.dataset.cn; const v=e.target.value; if(v&&v!==n) S.names[n]=v; else delete S.names[n]; persist(); deb(); }));
+  });
+  document.querySelectorAll('details.ax').forEach(d=>{ const kind=d.dataset.k;
+    d.querySelectorAll('[data-f]').forEach(inp=>{ const f=inp.dataset.f;
+      const h=()=>{ const a=S.axes[kind];
+        if(f==='auto'){ a.auto=inp.checked; if(!a.auto){ const first=firstSeries(kind); const au=autoAxes(kind,first); a.xmin=au.x.min;a.xmax=au.x.max;a.xstep=au.x.step;a.ymin=au.y.min;a.ymax=au.y.max;a.ystep=au.y.step; } persist(); renderAll(); return; }
+        a[f]=(inp.type==='number')?(inp.value===''?null:+inp.value):inp.value; persist(); deb(); };
+      inp.addEventListener(inp.type==='checkbox'||inp.tagName==='SELECT'?'change':'input',h); });
+  });
+  on('bHelp','click',showHelp);
+}
+function firstSeries(kind){
+  if(kind==='vp'){ const s=vpSets()[0]; return s&&s.charts[0]?s.charts[0].series:[]; }
+  const set=cycleSets()[0]; if(!set) return []; const ch=cycleCharts(set).find(c=>c.kind===kind); return ch?ch.series:[];
+}
+let debT=0; function deb(){ clearTimeout(debT); debT=setTimeout(renderSheetsOnly,180); }
+function renderSheetsOnly(){ renderSheets(); }
+function renderAll(){ $('#tCyc').setAttribute('aria-selected',S.tab==='cyc'); $('#tVp').setAttribute('aria-selected',S.tab==='vp'); renderRail(); renderSheets(); }
+
+/* ---------------- hover tooltip ---------------- */
+let tipEl=null, raf=0;
+$('#sheets').addEventListener('mousemove',ev=>{ const card=ev.target.closest('figure.card'); if(!card){hideTip();return;} if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; tipAt(card,ev); }); });
+$('#sheets').addEventListener('mouseleave',hideTip);
+function hideTip(){ if(tipEl){tipEl.remove();tipEl=null;} }
+function tipAt(card,ev){
+  const C=CHARTS[+card.dataset.i]; if(!C) return; const svg=card.querySelector('svg'); const rc=svg.getBoundingClientRect(); const k=C.W/rc.width;
+  const x=(ev.clientX-rc.left)*k, y=(ev.clientY-rc.top)*k; let best=null, bd=(14*k)*(14*k);
+  for(const s of C.hit) for(const p of s.pts){ const d=(p[0]-x)*(p[0]-x)+(p[1]-y)*(p[1]-y); if(d<bd){bd=d;best={s,p};} }
+  if(!best){hideTip();return;}
+  if(!tipEl){tipEl=document.createElement('div');tipEl.className='tip';card.appendChild(tipEl);} else if(tipEl.parentNode!==card){card.appendChild(tipEl);}
+  const fx=v=>Math.abs(v)>=100?v.toFixed(1):Math.abs(v)>=10?v.toFixed(2):v.toFixed(3);
+  tipEl.innerHTML=`<b style="color:#fff">${esc(best.s.name)}</b><br><span class="v">x ${fx(best.p[2])} · y ${fx(best.p[3])}</span>`;
+  const cr=card.getBoundingClientRect(); let lx=best.p[0]/k+12, ly=best.p[1]/k-38; if(lx+tipEl.offsetWidth>cr.width-4) lx=best.p[0]/k-tipEl.offsetWidth-12; if(ly<4) ly=best.p[1]/k+14;
+  tipEl.style.left=lx+'px'; tipEl.style.top=ly+'px';
+}
+
+/* ---------------- export ---------------- */
+let dlP=null; function downloads(){ if(!dlP){ try{ dlP=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null); }catch(e){ dlP=Promise.resolve(null); } } return dlP; }
+function svgToPng(svg,W,H,scale){ return new Promise((res,rej)=>{ const img=new Image(); const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
+  img.onload=()=>{ const c=document.createElement('canvas'); c.width=W*scale; c.height=H*scale; const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); c.toBlob(b=>b?res(b):rej(new Error('png')),'image/png'); };
+  img.onerror=e=>{URL.revokeObjectURL(url);rej(e);}; img.src=url; }); }
+async function saveBlob(filename,blob,previewPng){
+  const d=await downloads();
+  if(d){ try{ await d.save({filename,data:blob}); toast('저장했습니다: '+filename); return; }catch(e){ if(e&&e.code==='declined') return; if(e&&e.code==='rate_limited'){ toast('저장 창이 이미 열려 있습니다.'); return; } } }
+  if(!d && !previewPng){ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000); return; }catch(e){} }
+  // fallback: show the image so it can be right-clicked / long-pressed
+  if(previewPng){ const url=URL.createObjectURL(previewPng); modal(`<h2>${esc(filename)}</h2><p class="hint">이 화면에서는 바로 저장할 수 없습니다. 이미지를 우클릭(휴대폰은 길게 누르기)해서 저장하거나, 그래프의 <b>복사</b> 버튼으로 파워포인트에 붙여넣으세요.</p><img src="${url}" alt="${esc(filename)}">`); }
+  else toast('이 화면에서는 파일 저장을 지원하지 않습니다. 복사 버튼을 사용하세요.');
+}
+$('#sheets').addEventListener('click',async ev=>{
+  const b=ev.target.closest('figure.card .acts button'); if(!b) return; const C=CHARTS[+b.closest('figure.card').dataset.i]; if(!C) return; const a=b.dataset.a;
+  if(a==='svg'){ const blob=new Blob([C.svg],{type:'image/svg+xml'}); const png=await svgToPng(C.svg,C.W,C.H,2).catch(()=>null); saveBlob(C.name+'.svg',blob,png); }
+  if(a==='png'){ try{ const png=await svgToPng(C.svg,C.W,C.H,3); saveBlob(C.name+'.png',png,png); }catch(e){ toast('이미지 변환에 실패했습니다.'); } }
+  if(a==='copy'){
+    try{ if(!navigator.clipboard||!window.ClipboardItem) throw new Error('no');
+      await navigator.clipboard.write([new ClipboardItem({'image/png':svgToPng(C.svg,C.W,C.H,3)})]); toast('그래프를 복사했습니다. 파워포인트·한글에 붙여넣으세요.'); }
+    catch(e){ try{ const png=await svgToPng(C.svg,C.W,C.H,3); saveBlob(C.name+'.png',png,png); }catch(_){ toast('복사를 지원하지 않는 환경입니다.'); } }
+  }
+});
+async function saveZip(){
+  if(!CHARTS.length) return; if(typeof JSZip==='undefined'){ toast('ZIP 모듈을 불러오지 못했습니다.'); return; }
+  toast('그래프 '+CHARTS.length+'개를 묶는 중…');
+  const zip=new JSZip(); const used={};
+  for(const C of CHARTS){ let n=C.name; used[n]=(used[n]||0)+1; if(used[n]>1) n+=' ('+used[n]+')'; const png=await svgToPng(C.svg,C.W,C.H,3); zip.file(n+'.png',png); zip.file('svg/'+n+'.svg',C.svg); }
+  const blob=await zip.generateAsync({type:'blob'});
+  saveBlob((S.tab==='cyc'?'Cycle performance':'Voltage profile')+' 그래프.zip',blob,null);
+}
+
+/* ---------------- export: xlsx (data + native Excel charts) and csv ---------------- */
+const EMU=9525;
+function colL(n){ let s=''; n=n+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; }
+const xe=s=>String(s==null?'':s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hexU=h=>String(h||'#000000').replace('#','').toUpperCase();
+function pastel(hex){ const [H,S2,L]=hex2hsl(hex); return hsl2hex(H,Math.min(1,S2*.9),Math.max(L,.88)); }
+function baseName(){ const n=(S.fileName||'cell data').split(',')[0].replace(/\.[^.]+$/,'').replace(/\s*\(예시\)\s*/,'').trim(); return safe(n||'cell data'); }
+
+// Collect exactly what is on screen: the charts and the cells / curves they use.
+function exportModel(){
+  const isC=S.tab==='cyc';
+  if(isC){
+    const cells=[], seen=new Set();
+    for(const C of CHARTS) for(const s of C.spec.series){ if(seen.has(s.cell.name)) continue; seen.add(s.cell.name); cells.push({cell:s.cell,name:dispName(s.cell.name),gcolor:s.gcolor,group:s.cell.group,exp:s.cell.exp||s.cell.group}); }
+    const xs=[...new Set(cells.flatMap(c=>c.cell.pts.filter(p=>p[1]!=null||p[2]!=null).map(p=>p[0])))].sort((a,b)=>a-b);
+    return {kind:'cycle',cells,xs,charts:CHARTS};
+  }
+  const curves=[], seen=new Set();
+  for(const C of CHARTS) for(const s of C.spec.series){ const k=s.curve.cell+'\u0001'+s.curve.label; if(seen.has(k)) continue; seen.add(k); curves.push({curve:s.curve,key:k,name:dispName(s.curve.cell),label:s.curve.label,gcolor:s.gcolor,group:s.curve.group}); }
+  return {kind:'profile',curves,charts:CHARTS,connect:S.vp.connect};
+}
+function curveRows(c,connect){ const out=[]; c.curve.segs.forEach((seg,i)=>{ if(i>0&&!connect) out.push(null); for(const p of seg) out.push(p); }); return out; }
+
+/* ---- the data tables (shared by xlsx and csv) ---- */
+function cycleTable(M){
+  const H=['Chg. (mAh/g)','Dis. (mAh/g)','Effi. (%)','Ret. (%)'];
+  const byX=M.cells.map(c=>{ const m=new Map(); for(const p of c.cell.pts) m.set(p[0],p); return m; });
+  const rows=M.xs.map(x=>{ const r=[x]; byX.forEach(m=>{ const p=m.get(x); for(let k=1;k<=4;k++) r.push(p&&isNum(p[k])?p[k]:null); }); return r; });
+  return {H,rows};
+}
+
+function buildCsv(M){
+  const q=v=>{ if(v==null) return ''; if(typeof v==='number') return String(v); const s=String(v); return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const lines=[];
+  if(M.kind==='cycle'){
+    const {H,rows}=cycleTable(M);
+    lines.push(['Cycle',...M.cells.flatMap(c=>H.map(h=>c.name+' '+h))].map(q).join(','));
+    for(const r of rows) lines.push(r.map(q).join(','));
+  } else {
+    const cols=M.curves.map(c=>curveRows(c,M.connect));
+    lines.push(M.curves.flatMap(c=>[c.name+' | '+c.label+' mAh/g',c.name+' | '+c.label+' Volt (V)']).map(q).join(','));
+    const n=Math.max(0,...cols.map(c=>c.length));
+    for(let i=0;i<n;i++){ const r=[]; cols.forEach(col=>{ const p=col[i]; r.push(p?p[0]:null,p?p[1]:null); }); lines.push(r.map(q).join(',')); }
+  }
+  return new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+}
+
+/* ---- xlsx parts ---- */
+function sheetXml(rows,o){
+  o=o||{}; const out=['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'];
+  out.push(o.freeze?`<sheetViews><sheetView workbookViewId="0"${o.tabSelected?' tabSelected="1"':''}><pane xSplit="${o.freezeCol||0}" ySplit="${o.freeze}" topLeftCell="${colL(o.freezeCol||0)}${o.freeze+1}" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>`:`<sheetViews><sheetView workbookViewId="0"${o.tabSelected?' tabSelected="1"':''}${o.noGrid?' showGridLines="0"':''}/></sheetViews>`);
+  out.push('<sheetFormatPr defaultRowHeight="15" customHeight="1"/>');
+  if(o.cols&&o.cols.length) out.push('<cols>'+o.cols.map(([a,b,w])=>`<col min="${a}" max="${b}" width="${w}" customWidth="1"/>`).join('')+'</cols>');
+  out.push('<sheetData>');
+  const nRows=Math.max(rows.length,o.rowCount||0);
+  for(let ri=0;ri<nRows;ri++){ const row=rows[ri]||[]; let cs='';
+    for(let ci=0;ci<row.length;ci++){ const c=row[ci]; if(c==null) continue; let v=c,st=0; if(typeof c==='object'){ v=c.v; st=c.s||0; } const ref=colL(ci)+(ri+1);
+      if(typeof v==='number'&&isFinite(v)) cs+=`<c r="${ref}"${st?` s="${st}"`:''}><v>${v}</v></c>`;
+      else if(v==null||v===''){ if(st) cs+=`<c r="${ref}" s="${st}"/>`; }
+      else cs+=`<c r="${ref}" t="inlineStr"${st?` s="${st}"`:''}><is><t xml:space="preserve">${xe(v)}</t></is></c>`; }
+    const ht=o.heights&&o.heights[ri]; if(cs||ht) out.push(`<row r="${ri+1}"${ht?` ht="${ht}" customHeight="1"`:''}>${cs}</row>`); }
+  out.push('</sheetData>');
+  if(o.merges&&o.merges.length) out.push(`<mergeCells count="${o.merges.length}">`+o.merges.map(m=>`<mergeCell ref="${m}"/>`).join('')+'</mergeCells>');
+  out.push('<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>');
+  if(o.drawing) out.push('<drawing r:id="rId1"/>');
+  out.push('</worksheet>'); return out.join('');
+}
+// styles: 0 default · 1 grey header (white bold) · 2 bold header · 3 set title · 4 number (0.000) · 5+i group colour header
+function stylesXml(groupColors){
+  const fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>','<fill><patternFill patternType="solid"><fgColor rgb="FF808080"/><bgColor indexed="64"/></patternFill></fill>']
+    .concat(groupColors.map(c=>`<fill><patternFill patternType="solid"><fgColor rgb="FF${hexU(pastel(c))}"/><bgColor indexed="64"/></patternFill></fill>`));
+  const fonts=['<font><sz val="11"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>','<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>','<font><b/><sz val="11"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>','<font><b/><sz val="14"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>'];
+  const C='<alignment horizontal="center" vertical="center" wrapText="1"/>';
+  const xfs=['<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>',
+    `<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">${C}</xf>`,
+    `<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">${C}</xf>`,
+    '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>',
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>']
+    .concat(groupColors.map((c,i)=>`<xf numFmtId="0" fontId="2" fillId="${3+i}" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">${C}</xf>`));
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+    `<fonts count="${fonts.length}">${fonts.join('')}</fonts><fills count="${fills.length}">${fills.join('')}</fills>`+
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders>'+
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+    `<cellXfs count="${xfs.length}">${xfs.join('')}</cellXfs><cellStyles count="1"><cellStyle name="표준" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+}
+// header rows shared by both data sheets: group band (merged over a run of the same group) + name band
+function bands(items,width,rowG,rowN,groupStyle,merges,startCol){
+  let i=0; while(i<items.length){ let j=i; while(j+1<items.length&&items[j+1].group===items[i].group) j++;
+    const c0=startCol+i*width, c1=startCol+(j+1)*width-1; rowG[c0]={v:items[i].exp||items[i].group,s:groupStyle(items[i].gcolor)}; for(let c=c0+1;c<=c1;c++) rowG[c]={v:'',s:groupStyle(items[i].gcolor)};
+    if(c1>c0) merges.push(colL(c0)+(rowG.__r)+':'+colL(c1)+(rowG.__r)); i=j+1; }
+  items.forEach((it,k)=>{ const c0=startCol+k*width; rowN[c0]={v:it.name,s:1}; for(let c=c0+1;c<c0+width;c++) rowN[c]={v:'',s:1}; if(width>1) merges.push(colL(c0)+rowN.__r+':'+colL(c0+width-1)+rowN.__r); });
+}
+
+function txRun(text,pt,bold){ return `<a:r><a:rPr lang="ko-KR" altLang="en-US" sz="${Math.round(pt*100)}" b="${bold?1:0}"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:latin typeface="Arial"/><a:ea typeface="맑은 고딕"/><a:cs typeface="Arial"/></a:rPr><a:t>${xe(text)}</a:t></a:r>`; }
+function richTitle(text,pt,bold,rot,pos){ const lay=pos?`<c:layout><c:manualLayout><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="${pos[0].toFixed(4)}"/><c:y val="${pos[1].toFixed(4)}"/></c:manualLayout></c:layout>`:''; return `<c:title><c:tx><c:rich><a:bodyPr${rot?' rot="-5400000" vert="horz"':''}/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="${Math.round(pt*100)}" b="${bold?1:0}"/></a:pPr>${txRun(text,pt,bold)}</a:p></c:rich></c:tx>${lay}<c:overlay val="0"/></c:title>`; }
+function txPr(pt,bold){ return `<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="${Math.round(pt*100)}" b="${bold?1:0}"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:latin typeface="Arial"/><a:ea typeface="맑은 고딕"/><a:cs typeface="Arial"/></a:defRPr></a:pPr><a:endParaRPr lang="en-US"/></a:p></c:txPr>`; }
+const LN=(w,hex,dash)=>`<a:ln w="${Math.round(w)}" cap="rnd"><a:solidFill><a:srgbClr val="${hexU(hex)}"/></a:solidFill>${dash?`<a:prstDash val="${dash}"/>`:''}<a:round/></a:ln>`;
+
+function chartXml(C,refs,hasNote){
+  const sp=C.spec, L=LOOK[sp.look], k=sp.fontScale||1, ax=sp.axes;
+  const TX=sp.txt||{}; const tsz=(key,def)=>(TX[key]&&+TX[key].sz>0)?+TX[key].sz:def; const toff=(key,d)=>+(TX[key]&&TX[key][d])||0;
+  const fmt=st=>{ const d=decimals(st); return d?'0.'+'0'.repeat(d):'0'; };
+  const ser=sp.series.map((s,i)=>{ const r=refs[i]; const lw=(s.lineW||2)*EMU;
+    const line=s.line===false?'<a:ln><a:noFill/></a:ln>':LN(lw,s.color);
+    const mk=(s.marker&&s.marker!=='none')?`<c:marker><c:symbol val="${s.marker}"/><c:size val="7"/><c:spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>${LN(2*EMU,s.color)}</c:spPr></c:marker>`:'<c:marker><c:symbol val="none"/></c:marker>';
+    return `<c:ser><c:idx val="${i}"/><c:order val="${i}"/><c:tx><c:v>${xe(s.name)}</c:v></c:tx><c:spPr>${line}</c:spPr>${mk}<c:xVal><c:numRef><c:f>${xe(r.x)}</c:f></c:numRef></c:xVal><c:yVal><c:numRef><c:f>${xe(r.y)}</c:f></c:numRef></c:yVal><c:smooth val="0"/></c:ser>`; }).join('');
+  const axis=(id,cross,pos,a,title,tpt,tb,rot,grid)=>`<c:valAx><c:axId val="${id}"/><c:scaling><c:orientation val="minMax"/><c:max val="${a.max}"/><c:min val="${a.min}"/></c:scaling><c:delete val="0"/><c:axPos val="${pos}"/>`+
+    (grid?`<c:majorGridlines><c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="BFBFBF"/></a:solidFill><a:prstDash val="sysDash"/></a:ln></c:spPr></c:majorGridlines>`:'')+
+    (title?richTitle(title,tpt,tb,rot):'')+`<c:numFmt formatCode="${fmt(a.step)}" sourceLinked="0"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/>`+
+    `<c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr>${txPr(tsz('tick',L.tick*k),true)}<c:crossAx val="${cross}"/><c:crosses val="min"/><c:crossBetween val="midCat"/><c:majorUnit val="${a.step}"/></c:valAx>`;
+  const lb=C.legendBox; const lpos={top:'t',bottom:'b'}[sp.legend]||'r';
+  const legend=(sp.legend==='none'||!lb)?'':`<c:legend><c:legendPos val="${lpos}"/><c:layout><c:manualLayout><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="${lb.x.toFixed(4)}"/><c:y val="${lb.y.toFixed(4)}"/><c:w val="${lb.w.toFixed(4)}"/><c:h val="${lb.h.toFixed(4)}"/></c:manualLayout></c:layout><c:overlay val="1"/>`+
+    `<c:spPr><a:solidFill><a:srgbClr val="F2F2F2"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln><a:effectLst><a:outerShdw blurRad="50800" dist="38100" dir="2700000" algn="tl" rotWithShape="0"><a:prstClr val="black"><a:alpha val="40000"/></a:prstClr></a:outerShdw></a:effectLst></c:spPr>${txPr(lb.sz||L.leg*k,false)}</c:legend>`;
+  const P=L.plot;
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+    '<c:roundedCorners val="0"/><c:chart>'+(sp.title?richTitle(sp.title,tsz('title',L.title*k),!!L.titleB,false,[Math.max(0,(L.W/2+toff('title','dx')-tw(sp.title,tsz('title',L.title*k)*PT,!!L.titleB)/2-4)/L.W),Math.max(0,0.006+toff('title','dy')/L.H)]):'')+'<c:autoTitleDeleted val="'+(sp.title?0:1)+'"/>'+
+    `<c:plotArea><c:layout><c:manualLayout><c:layoutTarget val="inner"/><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="${P[0]}"/><c:y val="${P[1]}"/><c:w val="${P[2]}"/><c:h val="${P[3]}"/></c:manualLayout></c:layout>`+
+    `<c:scatterChart><c:scatterStyle val="lineMarker"/><c:varyColors val="0"/>${ser}<c:axId val="501"/><c:axId val="502"/></c:scatterChart>`+
+    axis(501,502,'b',ax.x,sp.xTitle,tsz('xt',L.xt*k),!!L.xtB,false,false)+axis(502,501,'l',ax.y,sp.yTitle,tsz('yt',L.yt*k),!!L.ytB,true,true)+
+    '<c:spPr><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:srgbClr val="FFFFFF"/></a:gs><a:gs pos="100000"><a:srgbClr val="D9D9D9"/></a:gs></a:gsLst><a:lin ang="5400000" scaled="0"/></a:gradFill><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr></c:plotArea>'+
+    legend+'<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>'+
+    '<c:spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr>'+
+    `<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr><a:latin typeface="Arial"/><a:ea typeface="맑은 고딕"/></a:defRPr></a:pPr><a:endParaRPr lang="en-US"/></a:p></c:txPr>`+
+    (hasNote?'<c:userShapes r:id="rId1"/>':'')+'</c:chartSpace>';
+}
+function noteXml(C){
+  const L=LOOK[C.spec.look], k=C.spec.fontScale||1, TX=C.spec.txt||{}; const pt=(TX.note&&+TX.note.sz>0)?+TX.note.sz:L.note*k; const tpx=L.title*k*PT; const top=(C.spec.title?(L.H*.006+tpx*1.32+3)/L.H:C.noteBox.y1)+(+(TX.note&&TX.note.dy)||0)/L.H;
+  const nb=Object.assign({},C.noteBox); nb.y1=Math.max(nb.y1,top); nb.y2=L.plot[1]-.004;
+  const paras=nb.lines.map(t=>`<a:p><a:pPr algn="l"/>${txRun(t,pt,true)}</a:p>`).join('');
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<c:userShapes xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:cdr="http://schemas.openxmlformats.org/drawingml/2006/chartDrawing">'+
+    `<cdr:relSizeAnchor><cdr:from><cdr:x>${nb.x1.toFixed(4)}</cdr:x><cdr:y>${Math.max(0,nb.y1).toFixed(4)}</cdr:y></cdr:from><cdr:to><cdr:x>${nb.x2.toFixed(4)}</cdr:x><cdr:y>${Math.max(nb.y1+.02,nb.y2).toFixed(4)}</cdr:y></cdr:to>`+
+    '<cdr:sp macro="" textlink=""><cdr:nvSpPr><cdr:cNvPr id="2" name="조건 메모"/><cdr:cNvSpPr txBox="1"/></cdr:nvSpPr><cdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></cdr:spPr>'+
+    `<cdr:txBody><a:bodyPr wrap="none" lIns="0" tIns="0" rIns="0" bIns="0" anchor="t"/><a:lstStyle/>${paras}</cdr:txBody></cdr:sp></cdr:relSizeAnchor></c:userShapes>`;
+}
+
+function buildXlsx(M){
+  if(typeof JSZip==='undefined') throw new Error('nozip');
+  const isC=M.kind==='cycle'; const dataName=isC?'Cycle data':'Profile data'; const Q=`'${dataName}'`;
+  // group colours → header styles
+  const items=isC?M.cells:M.curves; const gcols=[...new Set(items.map(i=>i.gcolor))]; const gStyle=c=>5+gcols.indexOf(c);
+  const rows=[], merges=[]; const refOf=new Map();
+  if(isC){
+    const {H,rows:body}=cycleTable(M); const top=4, last=top+Math.max(1,body.length)-1;
+    const rG=[]; rG.__r=1; const rN=[]; rN.__r=2; const rH=[{v:'Cycle',s:1}];
+    rG[0]={v:'',s:0}; rN[0]={v:'',s:0};
+    bands(M.cells,4,rG,rN,gStyle,merges,1);
+    M.cells.forEach((c,i)=>{ H.forEach((h,k)=>{ rH[1+i*4+k]={v:h,s:2}; }); refOf.set(c.cell.name,{x:`${Q}!$A$${top}:$A$${last}`,col:k=>`${Q}!$${colL(1+i*4+(k-1))}$${top}:$${colL(1+i*4+(k-1))}$${last}`}); });
+    rows.push(rG,rN,rH); for(const r of body) rows.push(r);
+  } else {
+    const rG=[]; rG.__r=1; const rN=[]; rN.__r=2; const rL=[]; const rU=[]; const top=5;
+    bands(M.curves,2,rG,rN,gStyle,merges,0);
+    const cols=M.curves.map(c=>curveRows(c,M.connect)); const n=Math.max(1,...cols.map(c=>c.length));
+    M.curves.forEach((c,i)=>{ rL[2*i]={v:c.label,s:2}; rL[2*i+1]={v:'',s:2}; merges.push(colL(2*i)+'3:'+colL(2*i+1)+'3'); rU[2*i]={v:'mAh/g',s:2}; rU[2*i+1]={v:'Volt (V)',s:2};
+      const len=Math.max(1,cols[i].length), last=top+len-1; refOf.set(c.key,{x:`${Q}!$${colL(2*i)}$${top}:$${colL(2*i)}$${last}`,y:`${Q}!$${colL(2*i+1)}$${top}:$${colL(2*i+1)}$${last}`}); });
+    rows.push(rG,rN,rL,rU);
+    for(let r=0;r<n;r++){ const row=[]; cols.forEach((col,i)=>{ const p=col[r]; if(p){ row[2*i]=p[0]; row[2*i+1]=p[1]; } }); rows.push(row); }
+  }
+  const dataCols=isC?[[1,1,8],[2,1+M.cells.length*4,11]]:[[1,Math.max(1,M.curves.length*2),10]];
+  const dataSheet=sheetXml(rows,{merges,cols:dataCols,freeze:isC?3:4,freezeCol:isC?1:0,heights:{1:30}});
+
+  // chart sheet: one row of charts per set, like the app
+  const zip=new JSZip(); const anchors=[]; const crow=[]; let y=10, cur=null, x=10, rowH=0; const gap=16;
+  const maxW=isC?(LOOK.cycle.W*3+gap*2+20):(LOOK.vp.W*2+gap+20);
+  const chartFiles=[];
+  M.charts.forEach((C,ci)=>{
+    const L=LOOK[C.spec.look];
+    if(C.set!==cur){ if(cur!==null) y+=rowH+24; cur=C.set; x=10; rowH=0; const r=Math.floor(y/20); crow[r]=[{v:C.set,s:3}]; y=(r+1)*20+6; }
+    else if(x+L.W>maxW){ y+=rowH+gap; x=10; rowH=0; }
+    const n=ci+1; const refs=C.spec.series.map(s=>{ if(isC){ const R=refOf.get(s.cell.name); return {x:R.x,y:R.col(s.col)}; } const R=refOf.get(s.curve.cell+'\u0001'+s.curve.label); return {x:R.x,y:R.y}; });
+    const hasNote=!!(C.noteBox&&C.noteBox.lines&&C.noteBox.lines.length);
+    zip.file(`xl/charts/chart${n}.xml`,chartXml(C,refs,hasNote));
+    if(hasNote){ zip.file(`xl/drawings/drawingNote${n}.xml`,noteXml(C)); zip.file(`xl/charts/_rels/chart${n}.xml.rels`,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chartUserShapes" Target="../drawings/drawingNote${n}.xml"/></Relationships>`); }
+    chartFiles.push({n,hasNote});
+    anchors.push(`<xdr:absoluteAnchor><xdr:pos x="${Math.round(x*EMU)}" y="${Math.round(y*EMU)}"/><xdr:ext cx="${L.W*EMU}" cy="${L.H*EMU}"/><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${n+1}" name="Chart ${n}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId${n}"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:absoluteAnchor>`);
+    x+=L.W+gap; rowH=Math.max(rowH,L.H);
+  });
+  const totalRows=Math.ceil((y+rowH+40)/20); const hts={}; for(let r=0;r<totalRows;r++) hts[r]=15;
+  const chartSheet=sheetXml(crow,{drawing:true,tabSelected:true,cols:[[1,1,30]],heights:hts,rowCount:totalRows});
+  const drawing='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+anchors.join('')+'</xdr:wsDr>';
+  const R='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+  zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'+
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>'+
+    '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>'+
+    chartFiles.map(f=>`<Override PartName="/xl/charts/chart${f.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`+(f.hasNote?`<Override PartName="/xl/drawings/drawingNote${f.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chartshapes+xml"/>`:'')).join('')+'</Types>');
+  zip.file('_rels/.rels',R+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>');
+  const now=new Date().toISOString().replace(/\.\d+Z$/,'Z');
+  zip.file('docProps/core.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${xe(baseName())}</dc:title><dc:creator>셀 데이터 그래프 메이커</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified></cp:coreProperties>`);
+  zip.file('docProps/app.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Microsoft Excel</Application></Properties>');
+  zip.file('xl/workbook.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView activeTab="0"/></bookViews><sheets><sheet name="Charts" sheetId="1" r:id="rId1"/><sheet name="${dataName}" sheetId="2" r:id="rId2"/></sheets></workbook>`);
+  zip.file('xl/_rels/workbook.xml.rels',R+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+  zip.file('xl/styles.xml',stylesXml(gcols));
+  zip.file('xl/worksheets/sheet1.xml',chartSheet);
+  zip.file('xl/worksheets/sheet2.xml',dataSheet);
+  zip.file('xl/worksheets/_rels/sheet1.xml.rels',R+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>');
+  zip.file('xl/drawings/drawing1.xml',drawing);
+  zip.file('xl/drawings/_rels/drawing1.xml.rels',R+chartFiles.map(f=>`<Relationship Id="rId${f.n}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart${f.n}.xml"/>`).join('')+'</Relationships>');
+  return zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6},mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+async function saveXlsx(){
+  if(!CHARTS.length){ toast('저장할 그래프가 없습니다.'); return; }
+  if(typeof JSZip==='undefined'){ toast('엑셀 저장 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.'); return; }
+  toast('엑셀 파일을 만드는 중… (그래프 '+CHARTS.length+'개)');
+  try{ const blob=await buildXlsx(exportModel()); saveBlob(baseName()+' - '+(S.tab==='cyc'?'Cycle performance':'Voltage profile')+'.xlsx',blob,null); }
+  catch(e){ console.error(e); toast('엑셀 파일을 만들지 못했습니다.'); }
+}
+function saveCsv(){
+  if(!CHARTS.length){ toast('저장할 데이터가 없습니다.'); return; }
+  try{ saveBlob(baseName()+' - '+(S.tab==='cyc'?'Cycle data':'Profile data')+'.csv',buildCsv(exportModel()),null); }
+  catch(e){ console.error(e); toast('CSV 파일을 만들지 못했습니다.'); }
+}
+
+/* ---------------- modal / toast / help / paste ---------------- */
+function modal(html,onMount){ const m=document.createElement('div'); m.className='modal'; m.innerHTML=`<div class="box" role="dialog" aria-modal="true">${html}<div class="row" style="justify-content:flex-end"><button class="btn" type="button" data-close>닫기</button></div></div>`;
+  m.addEventListener('click',e=>{ if(e.target===m||e.target.closest('[data-close]')) m.remove(); }); document.body.appendChild(m); document.addEventListener('keydown',function k(e){ if(e.key==='Escape'){m.remove();document.removeEventListener('keydown',k);} }); if(onMount) onMount(m); return m; }
+let toastT=0; function toast(msg,act){ let t=document.querySelector('.toast'); if(!t){ t=document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); document.body.appendChild(t); } t.textContent=msg;
+  if(act){ const b=document.createElement('button'); b.type='button'; b.className='tact'; b.textContent=act.label; b.onclick=()=>{ t.remove(); act.fn(); }; t.appendChild(b); }
+  clearTimeout(toastT); toastT=setTimeout(()=>t.remove(),act?7000:3200); }
+const HELP=`<h2>입력 형식 안내</h2>
+<p>지금 쓰시는 엑셀 시트 모양 그대로 읽습니다. 시트 이름은 상관없고, 머리글만 아래처럼 되어 있으면 됩니다.</p>
+<p><b>사이클 데이터</b> (Full cell Cycle_Raw 형식)<br>
+· 셀마다 4칸: <code>Chg. (mAh/g)</code> · <code>Dis. (mAh/g)</code> · <code>Effi. (%)</code> · <code>Ret. (%)</code><br>
+· 그 위 행에 셀 이름 (예: <code>Full cell 3차 구동 #1</code>), 맨 위에 실험 이름 (예: <code>3차 구동 (N/P = 1.1)</code>)<br>
+· 왼쪽 열에 사이클 번호 (1, 2, 3 …). 사이클 번호가 없는 Formation 행은 건너뜁니다.<br>
+· Effi.·Ret. 칸이 비어 있으면 Dis./Chg.×100, Dis./첫 사이클 Dis.×100 으로 자동 계산합니다.</p>
+<p><b>전압 프로파일</b> (Full cell Cycle_profile · VP_Initial 형식)<br>
+· 곡선마다 2칸: <code>mAh/g</code> · <code>Volt (V)</code><br>
+· 그 위 행에 사이클 이름 (예: <code>1C_10th</code>), 그 위 <code>Lot</code> 행에 셀 이름<br>
+· 충전 후 방전 데이터가 같은 칸에 이어져 있어도 용량이 0으로 돌아가는 지점에서 자동으로 나눕니다.</p>
+<p><b>여러 시트 비교</b><br>· 같은 종류(사이클 또는 전압 프로파일)의 시트가 2개 이상이면 왼쪽 "데이터 시트"가 체크 목록이 됩니다. 여러 개를 체크하면 한 그래프에 겹쳐 그리고, 색은 "시트별" 또는 "셀 이름별"로 묶을 수 있습니다. 전압 프로파일은 사이클 이름(예: 1C_10th와 1.0C_10th)을 같은 사이클로 맞춰 겹칩니다.</p>
+<p><b>충방전기 원본 (.cex · .wrd · TOYO)</b><br>· .cex, WonATech .wrd 파일을 그대로 열면 셀 데이터 변환기와 같은 방식으로 읽어 바로 그래프를 그립니다. 열 때 셀 이름, 질량, Formation 사이클 수를 묻습니다. .wrd는 파일에 적힌 활물질 무게를 질량 칸에 미리 채웁니다.<br>· TOYO는 시험 폴더를 통째로 .zip으로 묶어 넣거나 폴더째 끌어다 놓으세요. 000001, 000002 … 숫자 파일(측정 데이터)이 꼭 있어야 하고, CAPACITY.LOG가 있으면 용량을 그 값에 맞춥니다. 나머지 파일은 자동으로 건너뜁니다.</p>
+<p><b>연구실 양식 (셀 데이터 변환기에서 저장한 엑셀)</b><br>· Cycle 시트: 셀마다 <code>Chg.</code> 3칸(mAh/g · mAh/cm2 · mAh) · <code>Dis.</code> 3칸 · <code>Effi.</code> · <code>Ret.</code> — mAh/g에 값이 있으면 mAh/g, 없으면 mAh를 씁니다.<br>· Profile 시트: 사이클마다 Capacity 3칸 · Current · Time · Volt 6칸 묶음을 그대로 읽습니다.</p>
+<p><b>색 그룹</b>: 셀 이름 끝의 <code>#1</code>, <code>#2</code> 를 뺀 이름이 같으면 같은 색 그룹이 되고, 엑셀처럼 #1 진하게 → #2 중간 → #3 연하게 그려집니다.</p>`;
+function showHelp(){ modal(HELP); }
+function showPaste(){
+  modal(`<h2>엑셀에서 붙여넣기</h2><p class="hint">엑셀에서 머리글(셀 이름 행, Chg./Dis. 또는 mAh/g·Volt 행)부터 데이터 끝까지 선택해 복사(Ctrl+C)한 뒤 아래 칸에 붙여넣으세요(Ctrl+V).</p><textarea id="pasteBox" placeholder="여기에 붙여넣기"></textarea><div class="row"><button class="btn primary" type="button" id="pasteGo">그래프 만들기</button><span class="hint" id="pasteInfo"></span></div>`,m=>{
+    const ta=m.querySelector('#pasteBox'); ta.focus();
+    ta.addEventListener('input',()=>{ const n=ta.value.split('\n').length; m.querySelector('#pasteInfo').textContent=n>1?n+'행 붙여넣음':''; });
+    m.querySelector('#pasteGo').addEventListener('click',()=>{ if(addPasted(ta.value)) m.remove(); });
+  });
+}
+
+/* ---------------- wiring ---------------- */
+$('#bOpen').onclick=()=>$('#fileIn').click();
+$('#fileIn').onchange=e=>{ loadFiles([...e.target.files],'replace'); e.target.value=''; };
+$('#bAdd').onclick=()=>$('#fileAdd').click();
+$('#fileAdd').onchange=e=>{ loadFiles([...e.target.files],'add'); e.target.value=''; };
+$('#bSample').onclick=()=>{ loadSample(); toast('예시 데이터를 불러왔습니다.'); };
+try{ const sd=JSON.parse($('#sampleData').textContent||'{}'); if(!sd.sources||!sd.sources.length) $('#bSample').hidden=true; }catch(e){ $('#bSample').hidden=true; }
+$('#bPaste').onclick=showPaste;
+$('#tCyc').onclick=()=>{S.tab='cyc';renderAll();};
+$('#tVp').onclick=()=>{S.tab='vp';renderAll();};
+const app=$('#app');
+['dragenter','dragover'].forEach(t=>app.addEventListener(t,e=>{ if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files')){ e.preventDefault(); app.classList.add('drop'); } }));
+['dragleave','drop'].forEach(t=>app.addEventListener(t,e=>{ if(t==='dragleave'&&e.target!==app) return; app.classList.remove('drop'); }));
+app.addEventListener('drop',e=>{ e.preventDefault(); app.classList.remove('drop'); const mode=S.sources.length&&!S.isSample?'add':'replace'; Raw.filesFromDrop(e.dataTransfer).then(fs=>{ if(fs.length) loadFiles(fs,mode); }); });
+
+window.__cellgraph={S,renderChart,loadFiles,addPasted,buildXlsx:()=>buildXlsx(exportModel()),buildCsv:()=>buildCsv(exportModel())};
+(async()=>{
+  let d; try{ d=await Promise.race([IDB.get('data'),new Promise(r=>setTimeout(()=>r(undefined),2000))]); }catch(e){}
+  booted=true; quiet=true;
+  if(d&&Array.isArray(d.sources)){ if(FBMODE&&FBA.CONFIGURED&&d.owner){ pendingLocal=d; } else applyLocal(d); }
+  else loadSample();
+  quiet=false;
+  cloudInit();
+})();
+})();
+</script>
+
+</body></html>
