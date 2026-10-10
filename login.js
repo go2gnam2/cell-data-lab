@@ -27,6 +27,9 @@ a.fba-btn{text-decoration:none;display:inline-block}
 .fba-btn:disabled{opacity:.55;cursor:wait}
 .fba-btn:focus-visible,.fba-box input:focus-visible{outline:2px solid var(--accent,var(--teal,#0f5c78));outline-offset:1px}
 .fba-ov{position:fixed;inset:0;background:rgba(10,20,26,.45);display:grid;place-items:center;z-index:100;padding:16px}
+.fba-ov[data-gate]{background:var(--bg,var(--paper,#eef1f3));z-index:110}
+.fba-ov[data-gate] .fba-box{box-shadow:0 18px 50px -24px rgba(0,0,0,.35)}
+.fba-ov[data-gate]~.fba-ov:not([data-gate]){z-index:115}
 .fba-box{background:var(--panel,#fff);color:var(--ink,#1b2328);border:1px solid var(--line,#d5dce1);border-radius:12px;padding:22px;width:min(380px,100%);display:grid;gap:11px;box-shadow:0 18px 50px -20px rgba(0,0,0,.5);font-size:14px;line-height:1.5}
 .fba-box h2{margin:0;font-size:19px}
 .fba-box p{margin:0;color:var(--ink2,#4d5a63);font-size:13.5px}
