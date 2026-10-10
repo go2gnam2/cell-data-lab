@@ -151,7 +151,10 @@ button.x:hover{color:#c62828;background:var(--line2)}
 .btn2.add{border:1.5px dashed var(--accent);color:var(--accent);background:var(--accent-soft)}
 .btn2.add .ic{background:var(--accent);color:var(--accent-ink)}
 .btn2.add:hover{border-style:solid}
-.cloud{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);white-space:nowrap}
+.cloud{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);white-space:nowrap;background:none;border:1px solid transparent;border-radius:999px;padding:3px 8px;cursor:pointer;font-family:inherit}
+.cloud:hover{border-color:var(--line)}
+.cloud.broken .cd{background:#c62828}
+.diagbox{font-family:var(--mono);font-size:11.5px;white-space:pre-wrap;word-break:break-all;background:var(--sheet);border:1px solid var(--line2);border-radius:6px;padding:8px;max-height:40vh;overflow:auto}
 .cloud .cd{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .cloud.saved .cd{background:#2e7d32}
 .cloud.saving .cd,.cloud.loading .cd{background:var(--accent);animation:pulse 1s infinite alternate}
@@ -1032,7 +1035,10 @@ function persistData(){ if(!booted) return; if(!quiet){ localSavedAt=Date.now();
   dataT=setTimeout(()=>{ IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:(typeof localOwner!=='undefined'?localOwner:null)}); cloudSave(); },700); }
 
 /* ---------------- account storage (db capability, private per person) ---------------- */
-const CLOUD={db:null,base:null,ready:false,status:'local',at:null,hash:null,busy:false,again:false,warned:false};
+const BUILD='2026-10-10c';
+let allowEmpty=false; // set only when the person deletes all data on purpose
+const CLOUD={db:null,base:null,ready:false,status:'local',at:null,hash:null,busy:false,again:false,warned:false,log:[],uid:null,who:'',state:null};
+function clog(m){ CLOUD.log.push(new Date().toLocaleTimeString('ko-KR')+' '+m); if(CLOUD.log.length>40) CLOUD.log.shift(); console.log('[저장]',m); }
 const CHUNK=180000;
 function fnv(str){ let h=0x811c9dc5; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,0x01000193); } return (h>>>0).toString(36)+'.'+str.length.toString(36); }
 function cloudBadge(){
@@ -1041,8 +1047,9 @@ function cloudBadge(){
     dirty:['저장 안 된 변경 있음 · 곧 자동 저장','몇 초 안에 자동으로 계정에 저장됩니다. 바로 저장하려면 "지금 저장"을 누르세요.'],
     loading:['계정 확인 중…',''],ready:['계정 저장 켜짐','파일을 불러오거나 바꾸면 내 계정에 자동으로 저장됩니다.'],saving:['계정에 저장 중…',''],saved:['계정에 저장됨'+(t?' · '+t:''),'내 계정에 비공개로 저장되어 있습니다. 같은 계정으로 로그인하면 어느 컴퓨터에서든 이어서 볼 수 있습니다.'],
     full:['계정 저장 공간 부족 · 이 브라우저에만 저장','저장 공간이 가득 찼습니다. 쓰지 않는 파일이나 시트를 지우면 다시 계정에 저장됩니다.'],
-    error:['계정 저장 실패 · 이 브라우저에만 저장','잠시 후 다시 시도합니다. 데이터는 이 브라우저에 남아 있습니다.']}[CLOUD.status]||['',''];
-  return `<span class="cloud ${CLOUD.status}" id="cloudSt" title="${esc(m[1])}"><span class="cd" aria-hidden="true"></span>${esc(m[0])}</span>`;
+    error:['계정 저장 실패 · 이 브라우저에만 저장','잠시 후 다시 시도합니다. 데이터는 이 브라우저에 남아 있습니다.'],
+    broken:['계정 데이터를 읽지 못함','계정에 저장 기록은 있는데 내용을 읽지 못했습니다. 눌러서 자세히 보세요.']}[CLOUD.status]||['',''];
+  return `<button type="button" class="cloud ${CLOUD.status}" id="cloudSt" title="${esc(m[1])}&#10;눌러서 저장 상태를 자세히 봅니다"><span class="cd" aria-hidden="true"></span>${esc(m[0])}</button>`;
 }
 function setCloud(st,at){ CLOUD.status=st; if(at) CLOUD.at=at; const e=document.getElementById('cloudSt'); if(e) e.outerHTML=cloudBadge(); }
 async function cloudInit(){
@@ -1057,11 +1064,36 @@ async function cloudInit(){
   }catch(e){ console.warn('cloud init',e); setCloud('local'); }
 }
 async function cloudAttach(db,base){
-  CLOUD.db=db; CLOUD.base=base; CLOUD.hash=null; CLOUD.at=null;
-  const st=await db.doc(CLOUD.base+'/state').get();
-  if(st.exists){ const m=st.data(); CLOUD.hash=m.hash; CLOUD.at=m.savedAt;
-    if((m.savedAt||0)>localSavedAt){ const payload=await cloudRead(m); if(payload) applyPayload(payload,m.savedAt); } }
+  CLOUD.db=db; CLOUD.base=base; CLOUD.hash=null; CLOUD.at=null; CLOUD.state=null;
+  clog('계정 폴더 '+base+' 확인');
+  let st; try{ st=await db.doc(CLOUD.base+'/state').get(); }
+  catch(e){ clog('기록 읽기 실패: '+(e&&e.code||'')+' '+(e&&e.message||'')); CLOUD.ready=false; setCloud('error'); throw e; }
+  if(st.exists){ const m=st.data(); CLOUD.hash=m.hash; CLOUD.at=m.savedAt; CLOUD.state=m;
+    clog('계정에 기록 있음 · '+new Date(m.savedAt||0).toLocaleString('ko-KR')+' · 조각 '+m.n+'개');
+    if((m.savedAt||0)>localSavedAt||!S.sources.length){
+      let payload=null; try{ payload=await cloudRead(m); }catch(e){ clog('내용 읽기 실패: '+(e&&e.code||'')+' '+(e&&e.message||'')); }
+      if(payload){ applyPayload(payload,m.savedAt); clog('계정에서 데이터를 불러왔습니다'); }
+      else { CLOUD.ready=false; setCloud('broken');
+        toast('계정에 저장 기록이 있지만 내용을 읽지 못했습니다. 저장 상태를 눌러 확인하세요.',{label:'자세히',fn:showDiag});
+        return; }
+    } else clog('이 브라우저 데이터가 더 최신이라 그대로 둡니다');
+  } else clog('계정에 저장된 기록이 아직 없습니다');
   CLOUD.ready=true; setCloud(st.exists?'saved':'ready'); cloudSave(true);
+}
+function showDiag(){
+  const L=[
+    '앱 버전: '+BUILD,
+    '로그인: '+(CLOUD.who||'(로그인 안 됨)'),
+    '계정 폴더: '+(CLOUD.base||'-'),
+    '계정 기록: '+(CLOUD.state?('있음 · '+new Date(CLOUD.state.savedAt||0).toLocaleString('ko-KR')+' · 조각 '+CLOUD.state.n+'개 · '+Math.round((CLOUD.state.bytes||0)/1024)+'KB'):'없음'),
+    '지금 상태: '+CLOUD.status+(CLOUD.ready?' (계정 저장 켜짐)':' (계정 저장 꺼짐)'),
+    '화면의 데이터: '+S.sources.length+'개 시트','']
+    .join('\n')+CLOUD.log.join('\n');
+  modal(`<h2>저장 상태 자세히</h2><p class="hint">문제가 있으면 이 내용을 그대로 복사해서 보내 주세요.</p><div class="diagbox">${esc(L)}</div>
+    <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn sm" type="button" id="dgCopy">복사</button><button class="btn primary" type="button" id="dgSave">지금 저장</button></div>`,m=>{
+    m.querySelector('#dgCopy').onclick=()=>{ try{ navigator.clipboard.writeText(L); toast('복사했습니다.'); }catch(e){} };
+    m.querySelector('#dgSave').onclick=()=>{ m.remove(); saveNow(); };
+  });
 }
 
 /* ---------------- web version: the shared Cell·Data Lab login (login.js / FBA) ---------------- */
@@ -1086,13 +1118,13 @@ function applyLocal(d){ const q=quiet; quiet=true; localSavedAt=d.savedAt||0; lo
 async function stashLocal(owner,d){
   if(!owner) return; d=d||{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,settings:settingsObj()};
   if(!d.sources||!d.sources.length||!d.savedAt) return;
-  if(owner===localOwner&&CLOUD.ready&&CLOUD.hash&&CLOUD.hash===fnv(curJson())) return; // already in the account
-  await IDB.set('stash_'+owner,d);
+  await IDB.set('stash_'+owner,d); clog('이 브라우저에 지난 작업을 따로 보관했습니다');
 }
 async function takeStash(uid){
   const st=await IDB.get('stash_'+uid); if(!st) return; await IDB.set('stash_'+uid,null);
   if(!st.sources||!st.sources.length) return;
-  if((st.savedAt||0)>(CLOUD.at||0)&&(st.savedAt||0)>=localSavedAt){ applyPayload(st,Date.now()); localSavedAt=Date.now(); persistData(); toast('계정에 다 저장되지 못했던 지난 작업을 되살려 계정에 저장합니다.'); }
+  if((st.savedAt||0)>(CLOUD.at||0)&&(st.savedAt||0)>=localSavedAt){ applyPayload(st,Date.now()); localSavedAt=Date.now(); persistData(); clog('보관해 둔 지난 작업을 되살렸습니다'); toast('계정에 다 저장되지 못했던 지난 작업을 되살려 계정에 저장합니다.'); }
+  else clog('보관본보다 계정 기록이 최신이라 그대로 둡니다');
 }
 async function wipeLocal(prev){ await stashLocal(prev); quiet=true; S.sources=[]; S.isSample=false; localSavedAt=0; IDB.set('data',null); syncFileName(); afterLoad(); quiet=false; }
 async function onFbUser(u){
@@ -1101,14 +1133,15 @@ async function onFbUser(u){
   if(pendingLocal){ const d=pendingLocal; pendingLocal=null; if(d.owner===uid) applyLocal(d); else { await stashLocal(d.owner,d); IDB.set('data',null); } }
   else if(localOwner&&localOwner!==uid) await wipeLocal(localOwner);
   localOwner=uid;
-  if(!u){ CLOUD.ready=false; CLOUD.db=null; CLOUD.hash=null; CLOUD.at=null; setCloud('local'); return; }
+  if(!u){ CLOUD.uid=null; CLOUD.who=''; CLOUD.ready=false; CLOUD.db=null; CLOUD.hash=null; CLOUD.at=null; CLOUD.state=null; setCloud('local'); clog('로그아웃했습니다'); return; }
+  CLOUD.uid=uid; CLOUD.who=(u.email||u.displayName||uid)+' ('+uid.slice(0,6)+'…)'; clog('로그인: '+CLOUD.who);
   setCloud('loading');
   try{ await cloudAttach(FBA.fs,'data/users/'+uid); }
-  catch(e){ console.warn('cloud attach',e); CLOUD.ready=false; setCloud(e&&e.code==='permission-denied'?'local':'error'); if(e&&e.code==='permission-denied') toast('계정 저장 권한이 없습니다. 관리자에게 Firestore 보안 규칙을 확인해 달라고 하세요.'); }
+  catch(e){ console.warn('cloud attach',e); CLOUD.ready=false; setCloud(e&&e.code==='permission-denied'?'local':'error'); if(e&&e.code==='permission-denied') toast('계정 저장 권한이 없습니다. 관리자에게 Firestore 보안 규칙을 확인해 달라고 하세요.',{label:'자세히',fn:showDiag}); }
   try{ await takeStash(uid); }catch(e){ console.warn('stash',e); }
 }
 async function cloudRead(m){
-  const parts=[]; for(let i=0;i<m.n;i++){ const d=await CLOUD.db.doc(`${CLOUD.base}/c_${m.gen}_${i}`).get(); if(!d.exists) return null; parts.push(d.data().s); }
+  const parts=[]; for(let i=0;i<m.n;i++){ const d=await CLOUD.db.doc(`${CLOUD.base}/c_${m.gen}_${i}`).get(); if(!d.exists){ clog('조각 '+(i+1)+'/'+m.n+'이(가) 없습니다'); return null; } parts.push(d.data().s); }
   const zip=await JSZip.loadAsync(parts.join(''),{base64:true}); return JSON.parse(await zip.file('d.json').async('string'));
 }
 function applyPayload(p,savedAt){
@@ -1134,6 +1167,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function cloudWrite(){
   if(!CLOUD.ready||!localSavedAt) return;
   if(CLOUD.busy){ CLOUD.again=true; return; }
+  if(!S.sources.length&&!allowEmpty&&CLOUD.state&&CLOUD.state.bytes>2000){ clog('빈 화면은 계정 데이터에 덮어쓰지 않습니다'); setCloud('saved'); return; }
   const json=curJson();
   const hash=fnv(json); if(hash===CLOUD.hash){ setCloud('saved'); return; }
   CLOUD.busy=true; setCloud('saving');
@@ -1142,12 +1176,12 @@ async function cloudWrite(){
     const gen=Date.now().toString(36)+Math.random().toString(36).slice(2,6); const n=Math.max(1,Math.ceil(b64.length/CHUNK));
     for(let i=0;i<n;i++) await CLOUD.db.doc(`${CLOUD.base}/c_${gen}_${i}`).set({g:gen,i,s:b64.slice(i*CHUNK,(i+1)*CHUNK)});
     const at=localSavedAt; await CLOUD.db.doc(CLOUD.base+'/state').set({v:1,gen,n,hash,savedAt:at,bytes:b64.length});
-    CLOUD.hash=hash; setCloud('saved',at);
+    allowEmpty=false; CLOUD.hash=hash; CLOUD.state={savedAt:at,n,bytes:b64.length,gen,hash}; setCloud('saved',at); clog('계정에 저장 완료 · 조각 '+n+'개 · '+Math.round(b64.length/1024)+'KB');
     // remove pieces of older saves
     try{ const old=await CLOUD.db.collection(CLOUD.base).where('g','!=',gen).get(); for(const d of old.docs){ if(d.id!=='state'&&d.id.startsWith('c_')) await CLOUD.db.doc(CLOUD.base+'/'+d.id).delete(); } }catch(e){ console.warn('cleanup',e); }
-  }catch(e){ console.warn('cloud save',e);
+  }catch(e){ console.warn('cloud save',e); clog('저장 실패: '+(e&&e.code||'')+' '+(e&&e.message||''));
     if(e&&e.code==='quota_exceeded'){ setCloud('full'); if(!CLOUD.warned){ CLOUD.warned=true; toast('계정 저장 공간이 부족해 이 브라우저에만 저장했습니다. 쓰지 않는 파일을 지우면 다시 계정에 저장됩니다.'); } }
-    else if(e&&(e.code==='revoked'||e.code==='not_granted'||e.code==='invalid_argument')){ CLOUD.ready=false; setCloud('local'); }
+    else if(e&&(e.code==='revoked'||e.code==='not_granted'||e.code==='invalid_argument'||e.code==='permission-denied')){ CLOUD.ready=false; setCloud('error'); if(!CLOUD.warned){ CLOUD.warned=true; toast('계정에 저장할 권한이 없습니다. 관리자에게 알려 주세요.',{label:'자세히',fn:showDiag}); } }
     else { setCloud('error'); setTimeout(()=>cloudSave(),15000); }
   }finally{ CLOUD.busy=false; if(CLOUD.again){ CLOUD.again=false; cloudSave(); } }
 }
@@ -1168,19 +1202,20 @@ function undo(){ if(!UNDO) return; S.sources=UNDO.sources; S.cyc.src=UNDO.cs; S.
 function removeSources(pred,msg){ snapshot(); const curC=cycSources()[S.cyc.src], curV=vpSources()[S.vp.src];
   S.sources=S.sources.filter(s=>!pred(s)); if(!S.sources.length) S.isSample=false;
   const ci=cycSources().indexOf(curC), vi=vpSources().indexOf(curV); S.cyc.src=ci>=0?ci:0; S.vp.src=vi>=0?vi:0;
-  syncFileName(); afterLoad(); toast(msg,{label:'되돌리기',fn:undo}); }
+  if(!S.sources.length) allowEmpty=true; syncFileName(); afterLoad(); toast(msg,{label:'되돌리기',fn:undo}); }
 function removeData(kind,group,cell){ const vs=kind==='cyc'?virtCells():virtCurves();
   const hit=vs.filter(v=>cell!=null?(kind==='cyc'?v.name:v.cell)===cell:v.group===group); if(!hit.length) return; snapshot();
   const by=new Map(); hit.forEach(v=>{ if(!by.has(v._src)) by.set(v._src,new Set()); by.get(v._src).add(v._o); });
   for(const [src,set] of by){ if(kind==='cyc') src.cells=src.cells.filter(c=>!set.has(c)); else src.curves=src.curves.filter(c=>!set.has(c)); }
   if(S.sources.some(s=>!(s.cells||s.curves||[]).length)){ S.sources=S.sources.filter(s=>(s.cells||s.curves||[]).length); syncFileName(); }
-  afterLoad(); toast((cell!=null?'셀':'그룹')+' 데이터를 삭제했습니다.',{label:'되돌리기',fn:undo}); }
+  if(!S.sources.length) allowEmpty=true; afterLoad(); toast((cell!=null?'셀':'그룹')+' 데이터를 삭제했습니다.',{label:'되돌리기',fn:undo}); }
 $('#filebar').addEventListener('click',e=>{
   const f=e.target.closest('[data-delfile]'); if(f){ const name=f.dataset.delfile; removeSources(s=>s.file===name,`"${name}"을(를) 삭제했습니다.`); return; }
   const d=e.target.closest('[data-delsrc]'); if(d){ const src=S.sources[+d.dataset.delsrc]; if(src) removeSources(s=>s===src,`"${src.name}" 시트를 삭제했습니다.`); return; }
   if(e.target.closest('#bClear')) removeSources(()=>true,'불러온 데이터를 모두 지웠습니다.');
   if(e.target.closest('#bProj')) exportProject();
   if(e.target.closest('#bSaveNow')) saveNow();
+  if(e.target.closest('#cloudSt')) showDiag();
 });
 
 /* ---------------- .cex files (same reader as 셀 데이터 변환기) ---------------- */
@@ -1471,7 +1506,7 @@ function bindRail(){
       if(inp.value===''||!isFinite(+inp.value)) delete o[f]; else o[f]=+inp.value; persist(); deb(); }));
     on('txtSaveDef','click',()=>{ const d=txtDefs(); d[look]=JSON.parse(JSON.stringify(T.txt||{})); store.set(TXTDEF_KEY,d); persist(); renderRail(); toast('지금 글자 설정을 내 기본값으로 저장했습니다.'); });
     on('txtLoadDef','click',()=>{ const d=txtDefs()[look]; if(!d) return; T.txt=JSON.parse(JSON.stringify(d)); persist(); renderRail(); renderSheetsOnly(); toast('내 기본값을 불러왔습니다.'); });
-    const tb=document.getElementById('txtBox'); if(tb) tb.addEventListener('toggle',()=>{ T.txtOpen=tb.open; persist(); });
+    const tb=document.getElementById('txtBox'); if(tb) tb.addEventListener('toggle',()=>{ T.txtOpen=tb.open; store.set('cellgraph.v1',settingsObj()); });
     on('txtReset','click',()=>{ T.txt={}; persist(); renderRail(); renderSheetsOnly(); toast('글자 설정을 처음 상태로 되돌렸습니다. (저장한 내 기본값은 그대로 있습니다)'); }); }
   document.querySelectorAll('[data-all]').forEach(b=>b.addEventListener('click',()=>{
     const [what,mode]=b.dataset.all.split('-'); const on=mode==='on';

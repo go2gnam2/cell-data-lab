@@ -803,10 +803,10 @@ function cloudBadge(){
 }
 function setCloud(st,at){ CL.status=st; if(at) CL.at=at; const e=document.getElementById('cloudSt'); if(e) e.outerHTML=cloudBadge(); }
 async function cloudAttach(db,base){
-  CL.db=db; CL.base=base; CL.hash=null; CL.at=null;
+  CL.db=db; CL.base=base; CL.hash=null; CL.at=null; CL.state=null;
   const st=await db.doc(base+'/cp_state').get();
-  if(st.exists){ const m=st.data(); CL.hash=m.hash; CL.at=m.savedAt;
-    if((m.savedAt||0)>pSavedAt){ const d=await cloudRead(m); if(d){ pQuiet=true; restore(d); pSavedAt=m.savedAt; render(); PIDB.set('data',Object.assign({savedAt:pSavedAt,owner:pOwner},d)); pQuiet=false; } } }
+  if(st.exists){ const m=st.data(); CL.hash=m.hash; CL.at=m.savedAt; CL.state=m;
+    if((m.savedAt||0)>pSavedAt||!F.some(f=>!f.sample)){ const d=await cloudRead(m); if(d){ pQuiet=true; restore(d); pSavedAt=m.savedAt; render(); PIDB.set('data',Object.assign({savedAt:pSavedAt,owner:pOwner},d)); pQuiet=false; } } }
   CL.ready=true; setCloud(st.exists?'saved':'ready'); cloudSave(snapshot(),true);
 }
 async function cloudRead(m){
@@ -817,6 +817,7 @@ let cT=0; function cloudSave(snap,now){ CL.snap=snap; clearTimeout(cT); cT=setTi
 async function cloudWrite(){
   if(!CL.ready||!pSavedAt||!CL.snap) return;
   if(CL.busy){ CL.again=true; return; }
+  if(!(CL.snap.files||[]).length&&!window.__cpAllowEmpty&&CL.state&&CL.state.bytes>2000){ setCloud('saved'); return; } // never overwrite saved files with an empty screen
   const json=JSON.stringify(CL.snap); const hash=fnv(json); if(hash===CL.hash){ setCloud('saved'); return; }
   CL.busy=true; setCloud('saving');
   try{
@@ -824,7 +825,7 @@ async function cloudWrite(){
     const gen=Date.now().toString(36)+Math.random().toString(36).slice(2,6); const n=Math.max(1,Math.ceil(b64.length/CCHUNK));
     for(let i=0;i<n;i++) await CL.db.doc(`${CL.base}/cp_c_${gen}_${i}`).set({cg:gen,i,s:b64.slice(i*CCHUNK,(i+1)*CCHUNK)});
     const at=pSavedAt; await CL.db.doc(CL.base+'/cp_state').set({v:1,gen,n,hash,savedAt:at,bytes:b64.length});
-    CL.hash=hash; setCloud('saved',at);
+    window.__cpAllowEmpty=false; CL.hash=hash; CL.state={savedAt:at,n,bytes:b64.length}; setCloud('saved',at);
     try{ const old=await CL.db.collection(CL.base).where('cg','!=',gen).get(); for(const d of old.docs){ if(d.id.startsWith('cp_c_')) await CL.db.doc(CL.base+'/'+d.id).delete(); } }catch(e){ console.warn('cleanup',e); }
   }catch(e){ console.warn('cloud save',e);
     if(e&&(e.code==='quota_exceeded'||e.code==='resource-exhausted')){ setCloud('full'); if(!CL.warned){ CL.warned=true; toast('계정 저장 공간이 부족해 이 브라우저에만 저장했습니다.'); } }
@@ -1083,7 +1084,7 @@ const app=$('#app'), dz=$('#drop');
 ['dragenter','dragover'].forEach(t=>app.addEventListener(t,e=>{ if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files')){ e.preventDefault(); dz.classList.add('over'); } }));
 ['dragleave','drop'].forEach(t=>app.addEventListener(t,e=>{ if(t==='dragleave'&&e.target!==app&&e.target!==dz) return; dz.classList.remove('over'); }));
 app.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('over'); Raw.filesFromDrop(e.dataTransfer).then(addFiles); });
-$('#files').addEventListener('click',e=>{ const b=e.target.closest('[data-del]'); if(!b) return; F.splice(+b.dataset.del,1); render(); });
+$('#files').addEventListener('click',e=>{ const b=e.target.closest('[data-del]'); if(!b) return; F.splice(+b.dataset.del,1); if(!F.some(f=>!f.sample)) window.__cpAllowEmpty=true; render(); });
 $('#bSaveNow').onclick=()=>saveNow();
 $('#bSave').onclick=()=>O.fmt==='lab'?saveLab():saveCsv();
 
