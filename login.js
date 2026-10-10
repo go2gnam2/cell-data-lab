@@ -7,6 +7,12 @@ const MODE=cfg!==undefined;
 const CONFIGURED=!!(cfg&&cfg.apiKey&&cfg.projectId);
 const VER='10.12.2';
 const APPROVAL=MODE&&window.CDL_REQUIRE_APPROVAL!==false; // only people an admin approved may use the apps
+// app pages (window.CDL_GATE) stay hidden from the very first paint until the login check says this person may use them
+const GATED=APPROVAL&&CONFIGURED&&window.CDL_GATE===true;
+function wait(on){ if(!GATED) return; document.documentElement.classList.toggle('fba-wait',!!on); }
+if(GATED){ const st=document.createElement('style'); st.id='fba-wait-css'; st.textContent=`html.fba-wait body>*:not(.fba-ov):not(.fba-toast){visibility:hidden!important}
+html.fba-wait body::before{content:"로그인 확인 중…";position:fixed;inset:0;display:grid;place-items:center;font:14px 'IBM Plex Sans KR','Malgun Gothic',system-ui,sans-serif;color:#7c8a93;z-index:1}`;
+  (document.head||document.documentElement).appendChild(st); wait(true); }
 const S={ready:false,err:false,resolved:false,user:null,auth:null,fs:null,p:null,status:'out',admin:false,unsub:null};
 const subs=[], chips=[], ssubs=[];
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -89,7 +95,7 @@ async function onAuth(u){
     if(typeof ref.onSnapshot==='function') S.unsub=ref.onSnapshot(x=>{ if(x.exists&&S.user===u&&S.status!=='ok'){ S.status='ok'; emit(); toast('관리자가 승인했습니다. 이제 쓸 수 있습니다.'); } },()=>{});
   }catch(e){ console.warn('approval',e); S.status='pending'; emit(); }
 }
-function emitStatus(){ chips.forEach(render); ssubs.forEach(cb=>{ try{ cb(S.status); }catch(e){ console.error(e); } }); }
+function emitStatus(){ if(S.err||S.status==='ok') wait(false); else if(S.resolved&&(S.status==='out'||S.status==='pending')) wait(true); chips.forEach(render); ssubs.forEach(cb=>{ try{ cb(S.status); }catch(e){ console.error(e); } }); }
 function emit(){ emitStatus(); const u=S.status==='ok'?S.user:null; subs.forEach(cb=>{ try{ cb(u); }catch(e){ console.error(e); } }); }
 function render(el){
   if(!el) return; css(); el.hidden=!MODE; if(!MODE) return;
