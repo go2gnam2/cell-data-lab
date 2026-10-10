@@ -1129,7 +1129,7 @@ function persistData(){ if(!booted) return; if(!quiet){ localSavedAt=Date.now();
   dataT=setTimeout(()=>{ IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:(typeof localOwner!=='undefined'?localOwner:null)}); cloudSave(); },700); }
 
 /* ---------------- account storage (db capability, private per person) ---------------- */
-const BUILD='2026-10-10m';
+const BUILD='2026-10-10n';
 let allowEmpty=false; // set only when the person deletes all data on purpose
 const CLOUD={db:null,base:null,ready:false,status:'local',at:null,hash:null,busy:false,again:false,warned:false,log:[],uid:null,who:'',state:null};
 function clog(m){ CLOUD.log.push(new Date().toLocaleTimeString('ko-KR')+' '+m); if(CLOUD.log.length>40) CLOUD.log.shift(); console.log('[저장]',m); }
@@ -1584,7 +1584,7 @@ function renderRail(){
       <button class="btn sm" type="button" id="bHelp">입력 형식 안내</button> <button class="btn sm" type="button" data-manual>📖 사용 설명서</button>`;
   } else {
     const srcs=vpSources(); const M=vpModel();
-    const groups=M?M.groups.map(g=>({key:g.key,color:g.color,cells:g.cells})):[];
+    const groups=M?M.groups.map(g=>({key:g.key,ck:g.ck,color:g.color,cells:g.cells})):[];
     r.innerHTML=`
       <div class="fld"><span class="lbl">데이터 시트</span>${srcPicker('vp',srcs)}</div>
       <div class="fld"><span class="lbl">비교 방식</span>${seg('vMode',[['cycle','사이클별 (셀 겹쳐 보기)'],['cell','셀별 (사이클 변화)']],S.vp.mode)}</div>
