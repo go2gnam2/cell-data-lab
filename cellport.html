@@ -105,6 +105,9 @@ footer.copy{margin-top:8px;padding-top:12px;border-top:1px solid var(--line);tex
 .cloud.saved .cd{background:#2e7d32}
 .cloud.saving .cd,.cloud.loading .cd{background:var(--accent);animation:pulse 1s infinite alternate}
 .cloud.full .cd,.cloud.error .cd{background:#c62828}
+.cloud.dirty .cd{background:#e0a248}
+.cloud.saving,.cloud.dirty{font-weight:600}
+.cloud.saving{color:var(--accent)}
 @keyframes pulse{to{opacity:.3}}
 
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .brand .mascot{filter:invert(1)} }
@@ -121,7 +124,7 @@ footer.copy{margin-top:8px;padding-top:12px;border-top:1px solid var(--line);tex
   </header>
 
   <section class="card">
-    <h2><span class="n">1</span>불러온 파일<span style="margin-left:auto;font-weight:400" id="cloudSlot"><span class="cloud local" id="cloudSt"><span class="cd" aria-hidden="true"></span>이 브라우저에만 저장</span></span></h2>
+    <h2><span class="n">1</span>불러온 파일<span style="margin-left:auto;font-weight:400;display:inline-flex;gap:8px;align-items:center" id="cloudSlot"><span class="cloud local" id="cloudSt"><span class="cd" aria-hidden="true"></span>이 브라우저에만 저장</span><button class="btn primary" type="button" id="bSaveNow" style="padding:4px 10px;font-size:12.5px" title="기다리지 않고 지금 바로 저장합니다">지금 저장</button></span></h2>
     <div class="drop" id="drop" tabindex="0" role="button" aria-label="원본 파일 열기">.cex · .wrd 파일이나 TOYO 데이터 폴더(.zip)를 여기로 끌어다 놓거나 <b>눌러서 선택</b>하세요. 여러 개를 한꺼번에 넣어도 됩니다.<br><small>TOYO는 시험 폴더를 .zip으로 묶어 넣거나, 폴더째 끌어다 놓거나, <a href="#" id="pickDir">폴더 선택</a>을 누르세요. 000001, 000002 … 숫자 파일이 꼭 있어야 하고 CAPACITY.LOG가 있으면 용량을 그 값에 맞춥니다.</small></div>
     <div class="files" id="files"></div>
   </section>
@@ -780,7 +783,7 @@ function restore(d){
   if(d.O){ Object.assign(O,d.O); O.fmt='lab'; store.set('cexconv.v2',O); syncOpts(); }
 }
 function saveState(){
-  if(!pBooted) return; if(!pQuiet) pSavedAt=Date.now();
+  if(!pBooted) return; if(!pQuiet){ pSavedAt=Date.now(); if(CL.ready&&!CL.busy) setCloud('dirty'); }
   clearTimeout(pT); pT=setTimeout(()=>{ const snap=snapshot(); PIDB.set('data',Object.assign({savedAt:pSavedAt,owner:pOwner},snap)); cloudSave(snap); },800);
 }
 { const _set=store.set.bind(store); store.set=(k,v)=>{ _set(k,v); if(k==='cexconv.v2'&&pBooted&&!pQuiet) saveState(); }; }
@@ -792,6 +795,7 @@ const WEBMODE=!!(window.FBA&&window.FBA.MODE);
 function cloudBadge(){
   const t=CL.at?new Date(CL.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
   const m={local:['이 브라우저에만 저장',WEBMODE?'오른쪽 위 로그인 버튼으로 로그인하면 내 계정에 저장되어 다른 컴퓨터에서도 이어서 볼 수 있습니다.':'claude.ai에 로그인한 상태로 열면 내 계정에 저장되어 다른 컴퓨터에서도 이어서 볼 수 있습니다.'],
+    dirty:['저장 안 된 변경 있음 · 곧 자동 저장','몇 초 안에 자동으로 계정에 저장됩니다. 바로 저장하려면 "지금 저장"을 누르세요.'],
     loading:['계정 확인 중…',''],ready:['계정 저장 켜짐','파일을 불러오면 내 계정에 자동으로 저장됩니다.'],saving:['계정에 저장 중…',''],saved:['계정에 저장됨'+(t?' · '+t:''),'내 계정에 비공개로 저장되어 있습니다. 같은 계정으로 로그인하면 어느 컴퓨터에서든 이어서 볼 수 있습니다.'],
     full:['계정 저장 공간 부족 · 이 브라우저에만 저장','저장 공간이 가득 찼습니다. 쓰지 않는 파일을 목록에서 빼면 다시 계정에 저장됩니다.'],
     error:['계정 저장 실패 · 이 브라우저에만 저장','잠시 후 다시 시도합니다. 데이터는 이 브라우저에 남아 있습니다.']}[CL.status]||['',''];
@@ -828,10 +832,27 @@ async function cloudWrite(){
     else { setCloud('error'); setTimeout(()=>cloudSave(snapshot()),15000); }
   }finally{ CL.busy=false; if(CL.again){ CL.again=false; cloudSave(snapshot()); } }
 }
+async function saveNow(){
+  const b=document.getElementById('bSaveNow'); if(b){ b.disabled=true; b.textContent='저장 중…'; }
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try{
+    if(!pSavedAt&&F.some(f=>!f.sample)) pSavedAt=Date.now();
+    clearTimeout(pT); const snap=snapshot(); await PIDB.set('data',Object.assign({savedAt:pSavedAt,owner:pOwner},snap));
+    if(CL.ready){ clearTimeout(cT); for(let i=0;i<600&&CL.busy;i++) await sleep(100); CL.snap=snapshot(); await cloudWrite(); for(let i=0;i<600&&CL.busy;i++) await sleep(100);
+      if(CL.status==='saved') toast('계정에 저장했습니다.'); else toast('이 브라우저에는 저장했지만 계정 저장은 실패했습니다. 잠시 후 다시 눌러 주세요.'); }
+    else toast('이 브라우저에 저장했습니다. (계정 저장은 로그인해야 됩니다)');
+  }finally{ const b2=document.getElementById('bSaveNow'); if(b2){ b2.disabled=false; b2.textContent='지금 저장'; } }
+}
 async function cloudInit(){
   if(WEBMODE){
     FBA.chip(document.getElementById('acct')); FBA.gate();
-    FBA.beforeLogout(async()=>{ if(CL.ready){ clearTimeout(cT); CL.snap=snapshot(); await cloudWrite(); } });
+    const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+    FBA.beforeLogout(async()=>{ if(!F.some(f=>!f.sample)) return; FBA.toast('계정에 저장하는 중…'); clearTimeout(cT);
+      for(let i=0;i<600&&CL.busy;i++) await sleep(100);
+      if(CL.ready){ CL.snap=snapshot(); await cloudWrite(); for(let i=0;i<600&&CL.busy;i++) await sleep(100); }
+      await stash(pOwner); });
+    window.addEventListener('beforeunload',e=>{ const snap=snapshot(); const unsaved=CL.busy||(CL.ready&&pSavedAt&&fnv(JSON.stringify(snap))!==CL.hash);
+      if(unsaved){ PIDB.set('data',Object.assign({savedAt:pSavedAt,owner:pOwner},snap)); e.preventDefault(); e.returnValue=''; } });
     FBA.onUser(u=>{ onUser(u); }); FBA.init(); if(!FBA.CONFIGURED) setCloud('local');
     return;
   }
@@ -844,16 +865,28 @@ async function cloudInit(){
     await cloudAttach(db,'data/users/'+uid);
   }catch(e){ console.warn('cloud init',e); setCloud('local'); }
 }
-function wipe(){ pQuiet=true; F.length=0; pSavedAt=0; PIDB.set('data',null); render(); pQuiet=false; }
+async function stash(owner,d){
+  if(!owner) return; d=d||Object.assign({savedAt:pSavedAt,owner},snapshot());
+  if(!d.files||!d.files.length||!d.savedAt) return;
+  if(owner===pOwner&&CL.ready&&CL.hash&&CL.hash===fnv(JSON.stringify(snapshot()))) return;
+  await PIDB.set('stash_'+owner,d);
+}
+async function takeStash(uid){
+  const st=await PIDB.get('stash_'+uid); if(!st) return; await PIDB.set('stash_'+uid,null);
+  if(!st.files||!st.files.length) return;
+  if((st.savedAt||0)>(CL.at||0)&&(st.savedAt||0)>=pSavedAt){ pQuiet=true; restore(st); render(); pQuiet=false; pSavedAt=Date.now(); saveState(); toast('계정에 다 저장되지 못했던 지난 작업을 되살려 계정에 저장합니다.'); }
+}
+async function wipe(prev){ await stash(prev); pQuiet=true; F.length=0; pSavedAt=0; PIDB.set('data',null); render(); pQuiet=false; }
 async function onUser(u){
   const uid=u?u.uid:null;
-  if(pPending){ const d=pPending; pPending=null; if(d.owner===uid){ pQuiet=true; restore(d); pSavedAt=d.savedAt||0; render(); pQuiet=false; } else PIDB.set('data',null); }
-  else if(pOwner&&pOwner!==uid) wipe();
+  if(pPending){ const d=pPending; pPending=null; if(d.owner===uid){ pQuiet=true; restore(d); pSavedAt=d.savedAt||0; render(); pQuiet=false; } else { await stash(d.owner,d); PIDB.set('data',null); } }
+  else if(pOwner&&pOwner!==uid) await wipe(pOwner);
   pOwner=uid;
   if(!u){ CL.ready=false; CL.db=null; CL.hash=null; CL.at=null; setCloud('local'); return; }
   setCloud('loading');
   try{ await cloudAttach(FBA.fs,'data/users/'+uid); }
   catch(e){ console.warn('cloud attach',e); CL.ready=false; setCloud(e&&e.code==='permission-denied'?'local':'error'); }
+  try{ await takeStash(uid); }catch(e){ console.warn('stash',e); }
 }
 async function boot(){
   syncOpts();
@@ -1051,6 +1084,7 @@ const app=$('#app'), dz=$('#drop');
 ['dragleave','drop'].forEach(t=>app.addEventListener(t,e=>{ if(t==='dragleave'&&e.target!==app&&e.target!==dz) return; dz.classList.remove('over'); }));
 app.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('over'); Raw.filesFromDrop(e.dataTransfer).then(addFiles); });
 $('#files').addEventListener('click',e=>{ const b=e.target.closest('[data-del]'); if(!b) return; F.splice(+b.dataset.del,1); render(); });
+$('#bSaveNow').onclick=()=>saveNow();
 $('#bSave').onclick=()=>O.fmt==='lab'?saveLab():saveCsv();
 
 window.__cex={F,O,outputs,csvBytes,xlsxFor,labOpts,labFiles,saveLab};

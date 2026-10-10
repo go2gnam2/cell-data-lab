@@ -84,7 +84,25 @@ input[type=number]{font-family:var(--mono);font-size:12px}
 input[type=color]{width:24px;height:22px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer;flex:none}
 .cells{display:grid;gap:3px;padding:2px 6px 6px 28px}
 .cells .c{display:flex;align-items:center;gap:6px}
-.cells .sw{width:10px;height:10px;border-radius:50%;border:2px solid;flex:none;background:#fff}
+.cells .sw{width:14px;height:14px;border-radius:50%;border:3px solid;flex:none;background:#fff;padding:0;cursor:pointer}
+.cells .sw.own{box-shadow:0 0 0 1.5px var(--accent)}
+.swbtn{width:22px;height:20px;border:1px solid var(--line);border-radius:4px;padding:0;cursor:pointer;flex:none}
+.cpop{position:fixed;z-index:80;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;box-shadow:0 12px 32px -12px rgba(0,0,0,.45);width:min(420px,calc(100vw - 16px));display:grid;gap:8px}
+.cpcols{display:grid;grid-template-columns:240px minmax(0,1fr);gap:12px}
+@media (max-width:460px){.cpcols{grid-template-columns:minmax(0,1fr)}}
+.cpleft,.cpright{display:grid;gap:6px;align-content:start}
+.cpright{border-left:1px solid var(--line2);padding-left:12px}
+@media (max-width:460px){.cpright{border-left:0;padding-left:0;border-top:1px solid var(--line2);padding-top:8px}}
+.cpprev{height:34px;border-radius:4px;border:1px solid var(--line)}
+.cprgb{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:6px;font-size:12px;color:var(--ink2)}
+.cprgb input{font-family:var(--mono);font-size:12px;padding:3px 6px;min-width:0}
+.cpop .cpt{font-size:11px;color:var(--muted)}
+.cpg{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+.cpg2{gap:0 3px}
+.cp{width:100%;aspect-ratio:1;border:1px solid rgba(0,0,0,.18);padding:0;cursor:pointer;border-radius:2px}
+.cp:hover,.cp.on{outline:2px solid var(--accent);outline-offset:1px;position:relative;z-index:1}
+.cprow{display:flex;gap:6px;align-items:center;justify-content:space-between}
+.cpnat{width:40px;height:28px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer}
 .cells input[type=text]{font-size:12px;padding:2px 5px}
 details.ax{border:1px solid var(--line2);border-radius:5px;background:var(--sheet)}
 details.ax>summary{cursor:pointer;padding:6px 8px;font-size:12.5px;font-weight:600}
@@ -138,12 +156,21 @@ button.x:hover{color:#c62828;background:var(--line2)}
 .cloud.saved .cd{background:#2e7d32}
 .cloud.saving .cd,.cloud.loading .cd{background:var(--accent);animation:pulse 1s infinite alternate}
 .cloud.full .cd,.cloud.error .cd{background:#c62828}
+.cloud.dirty .cd{background:#e0a248}
+.cloud.saving,.cloud.dirty{font-weight:600}
+.cloud.saving{color:var(--accent)}
 @keyframes pulse{to{opacity:.3}}
 .lblrow{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
 .allbtns{display:flex;gap:4px}
 .allbtns .btn{padding:2px 7px;font-size:11px}
-.txtgrid{display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr));gap:4px 6px;align-items:center;font-size:12px}
-.txtgrid>span:nth-child(-n+4){font-size:10.5px;color:var(--muted)}
+.axdefs{display:grid;gap:5px;border-top:1px dashed var(--line2);padding-top:8px;margin-top:2px}
+.g3.g2{grid-template-columns:auto repeat(2,minmax(0,1fr))}
+.legren{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:6px 10px;align-items:center;font-size:13px;max-height:55vh;overflow:auto}
+.legren span{word-break:break-all;color:var(--ink2)}
+.txtgrid{display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr)) auto;gap:4px 6px;align-items:center;font-size:12px}
+.txtgrid>span:nth-child(-n+5){font-size:10.5px;color:var(--muted)}
+.txtgrid .bchk{display:flex;justify-content:center}
+.txtbtns{display:flex;flex-wrap:wrap;gap:6px}
 .txtgrid input{padding:3px 5px;font-size:12px}
 .acct{display:flex;align-items:center;gap:8px}
 .acct .who{font-size:12.5px;color:var(--ink2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -711,6 +738,49 @@ function hex2hsl(h){h=h.replace('#','');const r=parseInt(h.substr(0,2),16)/255,g
 function hsl2hex(H,S,L){const f=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
   let r,g,b;if(S===0){r=g=b=L;}else{const q=L<.5?L*(1+S):L+S-L*S,p=2*L-q;r=f(p,q,H+1/3);g=f(p,q,H);b=f(p,q,H-1/3);}
   return '#'+[r,g,b].map(x=>Math.round(Math.min(1,Math.max(0,x))*255).toString(16).padStart(2,'0')).join('');}
+// PowerPoint (Office) theme colours: 10 columns × (base + 5 tints/shades), then the 10 standard colours
+const PPT_THEME=[['FFFFFF','F2F2F2','D9D9D9','BFBFBF','A6A6A6','808080'],['000000','7F7F7F','595959','3F3F3F','262626','0D0D0D'],['E7E6E6','D0CECE','AFABAB','767171','3B3838','171616'],['44546A','D6DCE4','ADB9CA','8496B0','333F4F','222A35'],['4472C4','D9E2F3','B4C6E7','8EAADB','2F5496','1F3864'],['ED7D31','FBE5D5','F7CBAC','F4B183','C55A11','843C0B'],['A5A5A5','EDEDED','DBDBDB','C9C9C9','7B7B7B','525252'],['FFC000','FFF2CC','FEE599','FFD965','BF9000','7F6000'],['5B9BD5','DEEBF6','BDD7EE','9DC3E6','2E75B5','1F4E79'],['70AD47','E2EFD9','C5E0B3','A8D08D','538135','375623']];
+const PPT_STD=['C00000','FF0000','FFC000','FFFF00','92D050','00B050','00B0F0','0070C0','002060','7030A0'];
+function cellColor(g,cell,i,n,mode){ const o=S.cellColors&&S.cellColors[cell]; return o||shade(g.color,i,n,mode); }
+function openColorPop(anchor,cur,onPick,opt){
+  opt=opt||{}; const old=document.querySelector('.cpop'); if(old) old.remove();
+  const sw=h=>`<button type="button" class="cp" data-hex="#${h}" style="background:#${h}" title="#${h}" aria-label="#${h}"></button>`;
+  const pop=document.createElement('div'); pop.className='cpop'; pop.setAttribute('role','dialog'); pop.setAttribute('aria-label','색 선택');
+  const c0=/^#[0-9a-f]{6}$/i.test(cur||'')?cur:'#000000'; const rgb=[1,3,5].map(i=>parseInt(c0.substr(i,2),16));
+  const recent=(()=>{ try{ return JSON.parse(localStorage.getItem('cellgraph.recentColors')||'[]').slice(0,10); }catch(e){ return []; } })();
+  pop.innerHTML=`<div class="cpcols"><div class="cpleft"><div class="cpt">테마 색</div><div class="cpg">${PPT_THEME.map(c=>sw(c[0])).join('')}</div><div class="cpg cpg2">${[1,2,3,4,5].map(r=>PPT_THEME.map(c=>sw(c[r])).join('')).join('')}</div>
+    <div class="cpt">표준 색</div><div class="cpg">${PPT_STD.map(sw).join('')}</div>
+    ${recent.length?`<div class="cpt">최근 사용한 색</div><div class="cpg">${recent.map(h=>sw(h.replace('#',''))).join('')}</div>`:''}</div>
+    <div class="cpright"><div class="cpt">다른 색 (RGB)</div>
+      <div class="cpprev" style="background:${c0}"></div>
+      <label class="cprgb"><span>R</span><input type="number" min="0" max="255" class="cpr" value="${rgb[0]}"></label>
+      <label class="cprgb"><span>G</span><input type="number" min="0" max="255" class="cpgg" value="${rgb[1]}"></label>
+      <label class="cprgb"><span>B</span><input type="number" min="0" max="255" class="cpb" value="${rgb[2]}"></label>
+      <label class="cprgb"><span>HEX</span><input type="text" class="cphex" value="${c0.toUpperCase()}" maxlength="7" aria-label="HEX 색 코드"></label>
+      <div class="cprow"><input type="color" class="cpnat" value="${c0}" aria-label="색상표에서 고르기" title="색상표에서 고르기"><button type="button" class="btn sm primary cpok">적용</button></div></div></div>
+    ${opt.reset?`<button type="button" class="btn sm cpreset">${opt.reset}</button>`:''}`;
+  document.body.appendChild(pop);
+  const r=anchor.getBoundingClientRect(); const pw=pop.offsetWidth, ph=pop.offsetHeight;
+  let x=Math.min(window.innerWidth-pw-8,Math.max(8,r.left)), y=r.bottom+6; if(y+ph>window.innerHeight-8) y=Math.max(8,r.top-ph-6);
+  pop.style.left=x+'px'; pop.style.top=y+'px';
+  const cur0=(cur||'').toUpperCase(); pop.querySelectorAll('.cp').forEach(b=>{ if(b.dataset.hex===cur0) b.classList.add('on'); });
+  const close=()=>{ pop.remove(); document.removeEventListener('mousedown',out,true); document.removeEventListener('keydown',esc1); };
+  const pick=h=>{ if(!/^#[0-9a-f]{6}$/i.test(h)) return; h=h.toUpperCase();
+    try{ const r=JSON.parse(localStorage.getItem('cellgraph.recentColors')||'[]').filter(x=>x!==h); r.unshift(h); localStorage.setItem('cellgraph.recentColors',JSON.stringify(r.slice(0,10))); }catch(e){}
+    onPick(h); close(); };
+  const out=e=>{ if(!pop.contains(e.target)&&e.target!==anchor) close(); }; const esc1=e=>{ if(e.key==='Escape') close(); };
+  setTimeout(()=>{ document.addEventListener('mousedown',out,true); document.addEventListener('keydown',esc1); },0);
+  pop.addEventListener('click',e=>{ const b=e.target.closest('.cp'); if(b) pick(b.dataset.hex); });
+  const nat=pop.querySelector('.cpnat'), hex=pop.querySelector('.cphex'), prev=pop.querySelector('.cpprev'), R=pop.querySelector('.cpr'), G=pop.querySelector('.cpgg'), B=pop.querySelector('.cpb');
+  const h2=v=>Math.max(0,Math.min(255,Math.round(+v||0))).toString(16).padStart(2,'0');
+  const setAll=(h,from)=>{ h=h.toUpperCase(); prev.style.background=h; if(from!=='nat') nat.value=h.toLowerCase(); if(from!=='hex') hex.value=h; if(from!=='rgb'){ R.value=parseInt(h.substr(1,2),16); G.value=parseInt(h.substr(3,2),16); B.value=parseInt(h.substr(5,2),16); } };
+  [R,G,B].forEach(x=>x.addEventListener('input',()=>setAll('#'+h2(R.value)+h2(G.value)+h2(B.value),'rgb')));
+  hex.addEventListener('input',()=>{ let v=hex.value.trim(); if(v[0]!=='#') v='#'+v; if(/^#[0-9a-f]{6}$/i.test(v)) setAll(v,'hex'); });
+  nat.addEventListener('input',()=>setAll(nat.value,'nat'));
+  pop.querySelectorAll('.cprgb input').forEach(x=>x.addEventListener('keydown',e=>{ if(e.key==='Enter') pop.querySelector('.cpok').click(); }));
+  pop.querySelector('.cpok').addEventListener('click',()=>pick('#'+h2(R.value)+h2(G.value)+h2(B.value)));
+  const rs=pop.querySelector('.cpreset'); if(rs) rs.addEventListener('click',()=>{ onPick(null); close(); });
+}
 function shade(hex,i,n,mode){ if(mode==='same'||n<=1) return hex; const [m,o]=SHADES[i%SHADES.length]; const [H,S,L]=hex2hsl(hex); return hsl2hex(H,S,Math.min(1,L*m+o)); }
 function ramp(hex,i,n){ if(n<=1) return hex; const [H,S,L]=hex2hsl(hex); const t=i/(n-1); // dark -> light, like Excel tints
   const lo=L*.45, hi=Math.min(.85,L*.4+.55); return hsl2hex(H,S,lo+(hi-lo)*t); }
@@ -760,13 +830,13 @@ function renderChart(spec){
     `<filter id="${id}s" x="-5%" y="-10%" width="115%" height="130%"><feDropShadow dx="2" dy="2" stdDeviation="1.6" flood-color="#000" flood-opacity=".4"/></filter></defs>`);
   o.push(`<rect x="0.5" y="0.5" width="${W-1}" height="${H-1}" fill="#ffffff" stroke="#000000" stroke-width="1"/>`);
   // title
-  const TX=spec.txt||{}; const fz=(key,def)=>(TX[key]&&+TX[key].sz>0)?+TX[key].sz*PT:def; const ox=key=>+(TX[key]&&TX[key].dx)||0, oy=key=>+(TX[key]&&TX[key].dy)||0;
+  const TX=spec.txt||{}; const fz=(key,def)=>(TX[key]&&+TX[key].sz>0)?+TX[key].sz*PT:def; const ox=key=>+(TX[key]&&TX[key].dx)||0, oy=key=>+(TX[key]&&TX[key].dy)||0; const bd=(key,def)=>(TX[key]&&TX[key].b!=null)?!!TX[key].b:!!def; const BW=b=>b?'font-weight="bold"':'';
   const tp=fz('title',px(L.title)); const titleY=H*.018+px(L.title)*.85;
-  if(spec.title) o.push(`<text x="${(W/2+ox('title')).toFixed(1)}" y="${(H*.018+tp*.85+oy('title')).toFixed(1)}" text-anchor="middle" font-size="${tp.toFixed(1)}" ${L.titleB?'font-weight="bold"':''} fill="#000000">${esc(spec.title)}</text>`);
+  if(spec.title) o.push(`<text x="${(W/2+ox('title')).toFixed(1)}" y="${(H*.018+tp*.85+oy('title')).toFixed(1)}" text-anchor="middle" font-size="${tp.toFixed(1)}" ${BW(bd('title',L.titleB))} fill="#000000">${esc(spec.title)}</text>`);
   // condition note (text box under the title, like the workbook)
   let noteBox=null, legendBox=null;
   if(spec.note){ const np=fz('note',px(L.note)); const nx=P.x-W*.01+ox('note'); const lines=spec.note.split('\n').filter(s=>s.trim()!=='').slice(0,3); let ny=titleY+np*1.2+oy('note'); noteBox={x1:(nx-W*.002)/W,y1:(ny-np*1.05)/H,x2:.985,y2:Math.min(P.y/H,(ny+np*1.08*(lines.length-1)+np*.4)/H),lines};
-    for(const ln of lines){ o.push(`<text x="${nx.toFixed(1)}" y="${ny.toFixed(1)}" font-size="${np.toFixed(1)}" font-weight="bold" fill="#000000" xml:space="preserve">${esc(ln)}</text>`); ny+=np*1.08; } }
+    for(const ln of lines){ o.push(`<text x="${nx.toFixed(1)}" y="${ny.toFixed(1)}" font-size="${np.toFixed(1)}" ${BW(bd('note',1))} fill="#000000" xml:space="preserve">${esc(ln)}</text>`); ny+=np*1.08; } }
   // plot area
   o.push(`<rect x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}" fill="url(#${id}g)"/>`);
   const tk=fz('tick',px(L.tick)), dY=decimals(Y.step), dX=decimals(X.step);
@@ -776,14 +846,14 @@ function renderChart(spec){
   for(const v of yt){ if(v<=Y.min+1e-9||v>=Y.max-1e-9) continue; const y=sy(v).toFixed(1); o.push(`<line x1="${P.x}" x2="${P.x+P.w}" y1="${y}" y2="${y}" stroke="#bfbfbf" stroke-width="0.9" stroke-dasharray="3 2"/>`); }
   // ticks + labels
   const lwx=Math.max(...xt.map(v=>tw(v.toFixed(dX),tk,true)))+6; const pxStep=P.w/Math.max(1,(X.max-X.min)/X.step); const kx=Math.max(1,Math.ceil(lwx/pxStep)); const kyy=Math.max(1,Math.ceil(tk*1.05/(P.h/Math.max(1,(Y.max-Y.min)/Y.step))));
-    o.push(`<g fill="#000000" font-size="${tk.toFixed(1)}" font-weight="bold">`);
+    o.push(`<g fill="#000000" font-size="${tk.toFixed(1)}" ${BW(bd('tick',1))}>`);
   for(const v of yt){ const y=sy(v); const yi=Math.round((v-Y.min)/Y.step); o.push(`<line x1="${P.x-5}" x2="${P.x}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#000" stroke-width="0.9"/><text x="${(P.x-8+ox('tick')).toFixed(1)}" y="${(y+tk*.36).toFixed(1)}" text-anchor="end">${yi%kyy?'':v.toFixed(dY)}</text>`); }
   for(const v of xt){ const x=sx(v); const xi=Math.round((v-X.min)/X.step); o.push(`<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${P.y+P.h}" y2="${P.y+P.h+5}" stroke="#000" stroke-width="0.9"/><text x="${x.toFixed(1)}" y="${(P.y+P.h+6+tk*.95+oy('tick')).toFixed(1)}" text-anchor="middle">${xi%kx?'':v.toFixed(dX)}</text>`); }
   o.push('</g>');
   // axis titles
   const xp=fz('xt',px(L.xt)), yp=fz('yt',px(L.yt));
-  if(spec.xTitle) o.push(`<text x="${(P.x+P.w/2+ox('xt')).toFixed(1)}" y="${(Math.min(H-6,H*.912+xp*.9)+oy('xt')).toFixed(1)}" text-anchor="middle" font-size="${xp.toFixed(1)}" ${L.xtB?'font-weight="bold"':''} fill="#000000">${esc(spec.xTitle)}</text>`);
-  if(spec.yTitle){ const cx=W*.012+yp*.75+ox('yt'), cy=P.y+P.h/2+oy('yt'); o.push(`<text transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(-90)" text-anchor="middle" font-size="${yp.toFixed(1)}" ${L.ytB?'font-weight="bold"':''} fill="#000000">${esc(spec.yTitle)}</text>`); }
+  if(spec.xTitle) o.push(`<text x="${(P.x+P.w/2+ox('xt')).toFixed(1)}" y="${(Math.min(H-6,H*.912+xp*.9)+oy('xt')).toFixed(1)}" text-anchor="middle" font-size="${xp.toFixed(1)}" ${BW(bd('xt',L.xtB))} fill="#000000">${esc(spec.xTitle)}</text>`);
+  if(spec.yTitle){ const cx=W*.012+yp*.75+ox('yt'), cy=P.y+P.h/2+oy('yt'); o.push(`<text transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(-90)" text-anchor="middle" font-size="${yp.toFixed(1)}" ${BW(bd('yt',L.ytB))} fill="#000000">${esc(spec.yTitle)}</text>`); }
   // series
   const hit=[];
   o.push(`<g clip-path="url(#${id}k)">`);
@@ -811,7 +881,7 @@ function renderChart(spec){
     const Wmax=horiz?P.w-8:P.w-20, Hmax=P.h-8;
     let best=null;
     for(const f of [1,.92,.85,.78,.7,.62,.55]){
-      const lp=fz('leg',px(L.leg))*f, rh=lp*1.45, ws=spec.series.map(s=>samp+gap+tw(s.name,lp,false)+12);
+      const lp=fz('leg',px(L.leg))*f, rh=lp*1.45, ws=spec.series.map(s=>samp+gap+tw(s.name,lp,bd('leg',0))+12);
       const fit=cols=>{ const cw=[]; for(let i=0;i<n;i++){ const c=i%cols; cw[c]=Math.max(cw[c]||0,ws[i]); } const tot=cw.reduce((a,b)=>a+b,0)+2*pad; const rows=Math.ceil(n/cols); return {cols,cw,tot,rows,h:rows*rh+pad}; };
       let L1=null;
       if(horiz){ for(let c=n;c>=1;c--){ const t=fit(c); if(t.tot<=Wmax||c===1){ L1=t; break; } } }
@@ -823,15 +893,16 @@ function renderChart(spec){
     let bw,bx,by;
     if(horiz){ bw=P.w-8; bx=P.x+4; } else { bw=Math.min(Wmax,best.tot); bx=(lg==='bottom-left'||lg==='top-left')?P.x+10:P.x+P.w-bw-10; }
     by=(lg==='top'||lg==='top-left'||lg==='top-right')? P.y+4 : P.y+P.h-bh-(lg==='bottom'?4:10);
-    bx+=ox('leg'); by+=oy('leg');
+    bx+=ox('leg')+(+spec.legDx||0); by+=oy('leg')+(+spec.legDy||0);
     legendBox={x:bx/W,y:by/H,w:bw/W,h:bh/H,sz:lp/PT};
-    o.push(`<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="#f2f2f2" stroke="#000000" stroke-width="0.9" filter="url(#${id}s)"/>`);
+    o.push(`<g data-legg style="cursor:move"><rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="#f2f2f2" stroke="#000000" stroke-width="0.9" filter="url(#${id}s)"/>`);
     const extra=Math.max(0,(bw-2*pad-cw.reduce((a,b)=>a+b,0))/cols); const cx=[]; let acc=bx+pad; for(let c=0;c<cols;c++){ cx[c]=acc; acc+=cw[c]+extra; }
     const msL=Math.min(ms,lp*.75);
     spec.series.forEach((s,i)=>{ const c=i%cols, r=Math.floor(i/cols); const x0=cx[c], cy=by+pad/2+r*rh+rh/2; if(cy>by+bh) return;
       if(s.line!==false) o.push(`<line x1="${x0.toFixed(1)}" x2="${(x0+samp).toFixed(1)}" y1="${cy.toFixed(1)}" y2="${cy.toFixed(1)}" stroke="${s.color}" stroke-width="${s.lineW||2}"/>`);
       if(s.marker&&s.marker!=='none') o.push(`<path d="${markerPath(s.marker,x0+samp/2,cy,msL)}" fill="#ffffff" stroke="${s.color}" stroke-width="${(2*PT*.75).toFixed(2)}"/>`);
-      o.push(`<text x="${(x0+samp+gap).toFixed(1)}" y="${(cy+lp*.36).toFixed(1)}" font-size="${lp.toFixed(1)}" fill="#000000">${esc(s.name)}</text>`); });
+      o.push(`<text x="${(x0+samp+gap).toFixed(1)}" y="${(cy+lp*.36).toFixed(1)}" font-size="${lp.toFixed(1)}" ${BW(bd('leg',0))} fill="#000000" data-leg="${i}" style="cursor:text">${esc(s.name)}</text>`); });
+    o.push('</g>');
   }
   o.push('</svg>');
   return {svg:o.join(''),hit,W,H,noteBox,legendBox};
@@ -839,10 +910,15 @@ function renderChart(spec){
 
 /* ---------------- state ---------------- */
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+const AX0={dis:{auto:true,title:'Discharge Capacity',xt:'Cycle number',yt:'Discharge Capacity (mAh/g)',legend:'top'},
+  eff:{auto:true,title:'Efficiency',xt:'Cycle',yt:'Efficiency(%)',legend:'top'},
+  ret:{auto:true,title:'Retention',xt:'Cycle',yt:'Retention(%)',legend:'bottom-left'},
+  vp:{auto:true,title:'Voltage Profile _ {label}',xt:' Capacity (mAh/g)',yt:'Voltage (V) (vs. Li+/Li) ',legend:'bottom'}};
+const AXDEF_KEY='cellgraph.axdef';
 const saved=store.get('cellgraph.v1',{});
 const S={
   tab:'cyc', sources:[], fileName:'', isSample:false,
-  colors:saved.colors||{}, names:saved.names||{},
+  colors:saved.colors||{}, cellColors:saved.cellColors||{}, legNames:saved.legNames||{}, names:saved.names||{},
   cyc:Object.assign({src:0,view:'group',note:DEFAULT_NOTE,line:true,every:1,shadeMode:'excel',font:1,off:{},goff:{}},saved.cyc||{}),
   vp:Object.assign({src:0,mode:'cycle',view:'group',note:DEFAULT_NOTE,connect:false,shadeMode:'excel',font:1,off:{},goff:{},laboff:{},lineW:2},saved.vp||{}),
   axes:Object.assign({
@@ -854,12 +930,15 @@ const S={
 };
 ['cyc','vp'].forEach(t=>{S[t].off=S[t].off||{};S[t].goff=S[t].goff||{};});
 S.cex=Object.assign({nForm:0,lastMass:'',irange:10},saved.cex||{});
+{ const d=(saved.txtDef)||store.get('cellgraph.txtdef',null); if(d){ S.txtDef=d; [['cyc','cycle'],['vp','vp']].forEach(([t,l])=>{ if(d[l]&&(!S[t].txt||!Object.keys(S[t].txt).length)) S[t].txt=JSON.parse(JSON.stringify(d[l])); }); } }
 for(const k in EXCEL_COLORS) if(!S.colors[k]) S.colors[k]=EXCEL_COLORS[k];
-const settingsObj=()=>({colors:S.colors,names:S.names,cyc:S.cyc,vp:Object.assign({},S.vp),axes:S.axes,cex:S.cex});
+const settingsObj=()=>({axDef:S.axDef||null,colors:S.colors,cellColors:S.cellColors||{},legNames:S.legNames||{},names:S.names,cyc:S.cyc,vp:Object.assign({},S.vp),axes:S.axes,cex:S.cex,txtDef:S.txtDef||null});
 let saveT=0; function persist(){clearTimeout(saveT);saveT=setTimeout(()=>{ store.set('cellgraph.v1',settingsObj()); if(typeof persistData==='function') persistData(); },300);}
 
 function groupColor(key,order){ if(!S.colors[key]){ const used=new Set(Object.values(S.colors)); let c=PALETTE.find(p=>!used.has(p)); if(!c) c=PALETTE[order%PALETTE.length]; S.colors[key]=c; } return S.colors[key]; }
 const dispName=n=>S.names[n]||n;
+const legName=n=>(S.legNames&&S.legNames[n])||n;
+function axDefs(){ return S.axDef||(S.axDef=store.get(AXDEF_KEY,{})||{}); }
 
 /* ---------------- loading ---------------- */
 function normalize(src){
@@ -874,8 +953,28 @@ function loadSample(){
 }
 function gridFromTSV(text){ return text.replace(/\r/g,'').split('\n').map(line=>line.split('\t').map(v=>{ const t=v.trim(); if(t==='') return null; const n=Number(t.replace(/,/g,'')); return (/^[-+]?[\d,]*\.?\d+(e[-+]?\d+)?$/i.test(t)&&isFinite(n))?n:t; })); }
 function busy(msg){ const fb=$('#filebar'); fb.innerHTML=`<span class="busy">${esc(msg)}</span>`; }
+/* ---------------- work file (.cgm): data + every graph setting, to hand over to someone else ---------------- */
+async function exportProject(){
+  if(!S.sources.length){ toast('내보낼 데이터가 없습니다.'); return; }
+  if(typeof JSZip==='undefined'){ toast('ZIP 모듈을 불러오지 못했습니다.'); return; }
+  const json=JSON.stringify({app:'cdl-graph-maker',v:1,exportedAt:Date.now(),sources:S.sources,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,settings:settingsObj()});
+  const zip=new JSZip(); zip.file('d.json',json); zip.file('읽어보세요.txt','그래프 메이커 작업 파일입니다. 그래프 메이커에서 "새 파일로 바꾸기"로 이 .cgm 파일을 열면 같은 데이터와 그래프 설정이 그대로 나옵니다.');
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+  const base=(S.fileName||'그래프').split(',')[0].replace(/\.[^.]+$/,'').replace(/[\\/:*?"<>|]/g,'_').slice(0,60);
+  saveBlob(base+'_그래프작업.cgm',blob);
+}
+async function importProject(f){
+  try{
+    const zip=await JSZip.loadAsync(await f.arrayBuffer()); const e=zip.file('d.json'); if(!e) throw new Error('not a work file');
+    const p=JSON.parse(await e.async('string')); if(p.app!=='cdl-graph-maker'||!Array.isArray(p.sources)) throw new Error('not a work file');
+    if(S.sources.length&&!S.isSample&&!confirm('지금 불러온 데이터와 그래프 설정을 이 작업 파일의 내용으로 바꿀까요?\n(바꾸기 전 상태로 되돌리려면 지금 데이터를 먼저 "작업 파일 내보내기"로 저장해 두세요)')) return false;
+    snapshot(); applyPayload(p,Date.now()); persist(); persistData();
+    toast(`"${f.name}" 작업 파일을 열었습니다. 내 저장 공간에도 저장합니다.`); return true;
+  }catch(err){ console.warn(err); toast(`"${f.name}"은(는) 그래프 메이커 작업 파일이 아닙니다.`); return false; }
+}
 async function loadFiles(files,mode){
   if(!files||!files.length) return;
+  { const proj=[...files].filter(f=>/\.cgm$/i.test(f.name)); if(proj.length){ await importProject(proj[0]); files=[...files].filter(f=>!/\.cgm$/i.test(f.name)); if(!files.length) return; mode='add'; } }
   if(typeof XLSX==='undefined'){ toast('엑셀 읽기 모듈을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침하세요.'); return; }
   busy('파일을 읽는 중… (큰 파일은 몇 초 걸립니다)');
   await new Promise(r=>setTimeout(r,30));
@@ -929,7 +1028,7 @@ const IDB={ p:null,
   async set(k,v){ const db=await this.open(); if(!db) return; try{ db.transaction('kv','readwrite').objectStore('kv').put(v,k); }catch(e){} }
 };
 let dataT=0, booted=false, quiet=true, localSavedAt=0;
-function persistData(){ if(!booted) return; if(!quiet) localSavedAt=Date.now(); clearTimeout(dataT);
+function persistData(){ if(!booted) return; if(!quiet){ localSavedAt=Date.now(); if(CLOUD.ready&&!CLOUD.busy) setCloud('dirty'); } clearTimeout(dataT);
   dataT=setTimeout(()=>{ IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:(typeof localOwner!=='undefined'?localOwner:null)}); cloudSave(); },700); }
 
 /* ---------------- account storage (db capability, private per person) ---------------- */
@@ -939,6 +1038,7 @@ function fnv(str){ let h=0x811c9dc5; for(let i=0;i<str.length;i++){ h^=str.charC
 function cloudBadge(){
   const t=CLOUD.at?new Date(CLOUD.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
   const m={local:['이 브라우저에만 저장',FBMODE?'오른쪽 위 로그인 버튼으로 로그인하면 내 계정에 저장되어 다른 컴퓨터에서도 이어서 볼 수 있습니다.':'claude.ai에 로그인한 상태로 열면 내 계정에 저장되어 다른 컴퓨터에서도 이어서 볼 수 있습니다.'],
+    dirty:['저장 안 된 변경 있음 · 곧 자동 저장','몇 초 안에 자동으로 계정에 저장됩니다. 바로 저장하려면 "지금 저장"을 누르세요.'],
     loading:['계정 확인 중…',''],ready:['계정 저장 켜짐','파일을 불러오거나 바꾸면 내 계정에 자동으로 저장됩니다.'],saving:['계정에 저장 중…',''],saved:['계정에 저장됨'+(t?' · '+t:''),'내 계정에 비공개로 저장되어 있습니다. 같은 계정으로 로그인하면 어느 컴퓨터에서든 이어서 볼 수 있습니다.'],
     full:['계정 저장 공간 부족 · 이 브라우저에만 저장','저장 공간이 가득 찼습니다. 쓰지 않는 파일이나 시트를 지우면 다시 계정에 저장됩니다.'],
     error:['계정 저장 실패 · 이 브라우저에만 저장','잠시 후 다시 시도합니다. 데이터는 이 브라우저에 남아 있습니다.']}[CLOUD.status]||['',''];
@@ -969,23 +1069,43 @@ var FBMODE=!!(window.FBA&&window.FBA.MODE);
 var localOwner=null, pendingLocal=null;
 function fbInit(){
   FBA.chip(document.getElementById('acct')); FBA.gate();
-  FBA.beforeLogout(async()=>{ if(CLOUD.ready){ clearTimeout(cloudT); await cloudWrite(); } });
+  // before signing out: finish the upload that may still be running, then send the latest state
+  FBA.beforeLogout(async()=>{ if(!S.sources.length&&!localSavedAt) return; FBA.toast('계정에 저장하는 중…'); clearTimeout(cloudT);
+    for(let i=0;i<600&&CLOUD.busy;i++) await sleep(100);
+    if(CLOUD.ready){ await cloudWrite(); for(let i=0;i<600&&CLOUD.busy;i++) await sleep(100); }
+    await stashLocal(localOwner); });
+  // leaving the page while an upload is running would cut it off: ask first, and keep a copy in this browser
+  window.addEventListener('beforeunload',e=>{ const unsaved=CLOUD.busy||(CLOUD.ready&&localSavedAt&&fnv(curJson())!==CLOUD.hash);
+    if(unsaved){ IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:localOwner}); e.preventDefault(); e.returnValue=''; } });
   FBA.onUser(u=>{ onFbUser(u); });
   FBA.init();
   if(!FBA.CONFIGURED) setCloud('local');
 }
 function applyLocal(d){ const q=quiet; quiet=true; localSavedAt=d.savedAt||0; localOwner=d.owner||null; S.sources=d.sources; S.isSample=!!d.isSample; S.cyc.src=d.cs||0; S.vp.src=d.vs||0; if(d.tab) S.tab=d.tab; syncFileName(); afterLoad(); quiet=q; }
-function wipeLocal(){ quiet=true; S.sources=[]; S.isSample=false; localSavedAt=0; IDB.set('data',null); syncFileName(); afterLoad(); quiet=false; }
+// a person's last copy is never thrown away: it is set aside per person (only this browser keeps it) and offered back when they log in again
+async function stashLocal(owner,d){
+  if(!owner) return; d=d||{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,settings:settingsObj()};
+  if(!d.sources||!d.sources.length||!d.savedAt) return;
+  if(owner===localOwner&&CLOUD.ready&&CLOUD.hash&&CLOUD.hash===fnv(curJson())) return; // already in the account
+  await IDB.set('stash_'+owner,d);
+}
+async function takeStash(uid){
+  const st=await IDB.get('stash_'+uid); if(!st) return; await IDB.set('stash_'+uid,null);
+  if(!st.sources||!st.sources.length) return;
+  if((st.savedAt||0)>(CLOUD.at||0)&&(st.savedAt||0)>=localSavedAt){ applyPayload(st,Date.now()); localSavedAt=Date.now(); persistData(); toast('계정에 다 저장되지 못했던 지난 작업을 되살려 계정에 저장합니다.'); }
+}
+async function wipeLocal(prev){ await stashLocal(prev); quiet=true; S.sources=[]; S.isSample=false; localSavedAt=0; IDB.set('data',null); syncFileName(); afterLoad(); quiet=false; }
 async function onFbUser(u){
   const uid=u?u.uid:null;
   // data this browser kept for someone else (or before a logout) is never shown to the next person
-  if(pendingLocal){ const d=pendingLocal; pendingLocal=null; if(d.owner===uid) applyLocal(d); else IDB.set('data',null); }
-  else if(localOwner&&localOwner!==uid) wipeLocal();
+  if(pendingLocal){ const d=pendingLocal; pendingLocal=null; if(d.owner===uid) applyLocal(d); else { await stashLocal(d.owner,d); IDB.set('data',null); } }
+  else if(localOwner&&localOwner!==uid) await wipeLocal(localOwner);
   localOwner=uid;
   if(!u){ CLOUD.ready=false; CLOUD.db=null; CLOUD.hash=null; CLOUD.at=null; setCloud('local'); return; }
   setCloud('loading');
   try{ await cloudAttach(FBA.fs,'data/users/'+uid); }
   catch(e){ console.warn('cloud attach',e); CLOUD.ready=false; setCloud(e&&e.code==='permission-denied'?'local':'error'); if(e&&e.code==='permission-denied') toast('계정 저장 권한이 없습니다. 관리자에게 Firestore 보안 규칙을 확인해 달라고 하세요.'); }
+  try{ await takeStash(uid); }catch(e){ console.warn('stash',e); }
 }
 async function cloudRead(m){
   const parts=[]; for(let i=0;i<m.n;i++){ const d=await CLOUD.db.doc(`${CLOUD.base}/c_${m.gen}_${i}`).get(); if(!d.exists) return null; parts.push(d.data().s); }
@@ -994,15 +1114,27 @@ async function cloudRead(m){
 function applyPayload(p,savedAt){
   quiet=true;
   S.sources=Array.isArray(p.sources)?p.sources:[]; S.isSample=!!p.isSample; S.cyc.src=p.cs||0; S.vp.src=p.vs||0; if(p.tab) S.tab=p.tab;
-  if(p.settings){ const t=p.settings; if(t.colors) S.colors=t.colors; if(t.names) S.names=t.names; if(t.cyc) Object.assign(S.cyc,t.cyc); if(t.vp) Object.assign(S.vp,t.vp); if(t.axes) S.axes=Object.assign(S.axes,t.axes); store.set('cellgraph.v1',settingsObj()); }
+  if(p.settings){ const t=p.settings; if(t.colors) S.colors=t.colors; if(t.cellColors) S.cellColors=t.cellColors; if(t.axDef){ S.axDef=t.axDef; store.set(AXDEF_KEY,t.axDef); } if(t.legNames) S.legNames=t.legNames; if(t.names) S.names=t.names; if(t.cyc) Object.assign(S.cyc,t.cyc); if(t.vp) Object.assign(S.vp,t.vp); if(t.axes) S.axes=Object.assign(S.axes,t.axes); if(t.txtDef){ S.txtDef=t.txtDef; store.set(TXTDEF_KEY,t.txtDef); } store.set('cellgraph.v1',settingsObj()); }
   localSavedAt=savedAt||0; syncFileName(); afterLoad(); quiet=false;
 }
 let cloudT=0;
 function cloudSave(now){ clearTimeout(cloudT); cloudT=setTimeout(cloudWrite,now?50:1500); }
+async function saveNow(){
+  const b=document.getElementById('bSaveNow'); if(b){ b.disabled=true; b.textContent='저장 중…'; }
+  try{
+    if(!localSavedAt&&S.sources.length) localSavedAt=Date.now();
+    clearTimeout(dataT); await IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:(typeof localOwner!=='undefined'?localOwner:null)});
+    if(CLOUD.ready){ clearTimeout(cloudT); for(let i=0;i<600&&CLOUD.busy;i++) await sleep(100); await cloudWrite(); for(let i=0;i<600&&CLOUD.busy;i++) await sleep(100);
+      if(CLOUD.status==='saved') toast('계정에 저장했습니다.'); else toast('이 브라우저에는 저장했지만 계정 저장은 실패했습니다. 잠시 후 다시 눌러 주세요.'); }
+    else toast('이 브라우저에 저장했습니다. (계정 저장은 로그인해야 됩니다)');
+  }finally{ const b2=document.getElementById('bSaveNow'); if(b2){ b2.disabled=false; b2.textContent='지금 저장'; } }
+}
+function curJson(){ return JSON.stringify({v:1,sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,settings:settingsObj()}); }
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function cloudWrite(){
   if(!CLOUD.ready||!localSavedAt) return;
   if(CLOUD.busy){ CLOUD.again=true; return; }
-  const json=JSON.stringify({v:1,sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,settings:settingsObj()});
+  const json=curJson();
   const hash=fnv(json); if(hash===CLOUD.hash){ setCloud('saved'); return; }
   CLOUD.busy=true; setCloud('saving');
   try{
@@ -1047,6 +1179,8 @@ $('#filebar').addEventListener('click',e=>{
   const f=e.target.closest('[data-delfile]'); if(f){ const name=f.dataset.delfile; removeSources(s=>s.file===name,`"${name}"을(를) 삭제했습니다.`); return; }
   const d=e.target.closest('[data-delsrc]'); if(d){ const src=S.sources[+d.dataset.delsrc]; if(src) removeSources(s=>s===src,`"${src.name}" 시트를 삭제했습니다.`); return; }
   if(e.target.closest('#bClear')) removeSources(()=>true,'불러온 데이터를 모두 지웠습니다.');
+  if(e.target.closest('#bProj')) exportProject();
+  if(e.target.closest('#bSaveNow')) saveNow();
 });
 
 /* ---------------- .cex files (same reader as 셀 데이터 변환기) ---------------- */
@@ -1100,7 +1234,7 @@ function renderFilebar(){
   const files=[...new Set(S.sources.map(s=>s.file))];
   fb.innerHTML=files.map(f=>`<span class="fgrp"><span class="src">${S.isSample?'예시 · ':''}<b>${esc(f)}</b><button class="x" type="button" data-delfile="${esc(f)}" title="이 파일 전체 삭제" aria-label="${esc(f)} 삭제">×</button></span>`+
     S.sources.map((s,i)=>s.file!==f?'':`<span class="chip"><span class="k">${s.kind==='cycle'?'cycle':'profile'}</span><b>${esc(s.name)}</b> ${s.kind==='cycle'?s.cells.length+'셀':s.curves.length+'곡선'}<button class="x" type="button" data-delsrc="${i}" title="이 시트 삭제" aria-label="${esc(s.name)} 삭제">×</button></span>`).join('')+'</span>').join('')+
-    `<span style="margin-left:auto" class="row">${cloudBadge()}<button class="btn sm" type="button" id="bClear">모두 지우기</button></span>`;
+    `<span style="margin-left:auto" class="row">${cloudBadge()}<button class="btn sm primary" type="button" id="bSaveNow" title="기다리지 않고 지금 바로 저장합니다">지금 저장</button><button class="btn sm" type="button" id="bProj" title="불러온 데이터와 그래프 설정(색·축·글자·이름)을 파일 하나로 저장합니다. 다른 사람이 그래프 메이커에서 이 파일을 열면 같은 그래프가 그대로 나옵니다.">작업 파일 내보내기</button><button class="btn sm" type="button" id="bClear">모두 지우기</button></span>`;
 }
 
 
@@ -1137,7 +1271,7 @@ function cycleSets(){
   const gm=groupsOf(vcells,c=>c.group); let order=0;
   const groups=[...gm.entries()].map(([key,cells])=>({key,cells,color:groupColor(key,order++),exp:cells[0].exp}));
   const on=c=>!S.cyc.off[c.name]; const gon=g=>!S.cyc.goff[g.key];
-  const mk=(g,c,i,n)=>({cell:c,name:dispName(c.name),gcolor:g.color,color:shade(g.color,i,n,S.cyc.shadeMode)});
+  const mk=(g,c,i,n)=>({cell:c,name:dispName(c.name),gcolor:g.color,color:cellColor(g,c.name,i,n,S.cyc.shadeMode)});
   if(S.cyc.view==='merge'){ const ser=[]; groups.filter(gon).forEach(g=>{ const cs=g.cells.filter(on); const n=g.cells.length; g.cells.forEach((c,i)=>{ if(on(c)) ser.push(mk(g,c,i,n)); }); });
     return ser.length?[{title:'선택한 셀 비교',sub:ser.length+'개 셀',color:null,series:ser}]:[]; }
   return groups.filter(gon).map(g=>{ const n=g.cells.length; const ser=[]; g.cells.forEach((c,i)=>{ if(on(c)) ser.push(mk(g,c,i,n)); }); return {title:g.key,sub:g.exp||'',color:g.color,series:ser}; }).filter(s=>s.series.length);
@@ -1168,13 +1302,13 @@ function vpSets(){
       cellsOn.forEach((cell,ci)=>{ const cs=g.curves.filter(c=>c.cell===cell&&lon(c.label)); const n=cs.length; if(!n) return; nCells++;
         charts.push({kind:'vp',look:'vp',title:dispName(cell),series:cs.map((c,i)=>Object.assign(vpSeries(g,c,ramp(g.color,i,n)),{name:c.label}))});
         // the same curves for the combined chart: each cell keeps its own shade of the group colour, cycles go dark → light
-        const base=shade(g.color,g.cells.indexOf(cell),g.cells.length,S.vp.shadeMode);
+        const base=cellColor(g,cell,g.cells.indexOf(cell),g.cells.length,S.vp.shadeMode);
         cs.forEach((c,i)=>all.push(Object.assign(vpSeries(g,c,ramp(base,i,n)),{name:`${dispName(cell)} · ${c.label}`}))); });
       if(charts.length) sets.push({title:g.key,sub:'셀별 사이클 변화',color:g.color,charts}); }
     if(S.vp.cellAll&&nCells>1&&all.length) sets.unshift({title:'모든 셀 함께',sub:`${nCells}개 셀 · 사이클 변화 겹쳐 보기`,color:null,charts:[{kind:'vp',look:'vp',title:'Voltage Profile _ 모든 셀',series:all}]});
     return sets;
   }
-  const build=(gs,title,color)=>{ const charts=[]; for(const lab of M.labels.filter(lon)){ const ser=[]; for(const g of gs){ const n=g.cells.length; g.cells.forEach((cell,i)=>{ if(!on(cell)) return; const c=g.curves.find(x=>x.cell===cell&&x.label===lab); if(c) ser.push(vpSeries(g,c,shade(g.color,i,n,S.vp.shadeMode))); }); }
+  const build=(gs,title,color)=>{ const charts=[]; for(const lab of M.labels.filter(lon)){ const ser=[]; for(const g of gs){ const n=g.cells.length; g.cells.forEach((cell,i)=>{ if(!on(cell)) return; const c=g.curves.find(x=>x.cell===cell&&x.label===lab); if(c) ser.push(vpSeries(g,c,cellColor(g,cell,i,n,S.vp.shadeMode))); }); }
       if(ser.length) charts.push({kind:'vp',look:'vp',title:vpTitle(lab),series:ser}); } return charts.length?{title,sub:charts.length+'개 사이클',color,charts}:null; };
   if(S.vp.view==='merge'){ const s=build(M.groups.filter(gon),'선택한 셀 비교',null); return s?[s]:[]; }
   return M.groups.filter(gon).map(g=>build([g],g.key,g.color)).filter(Boolean);
@@ -1189,7 +1323,8 @@ let CHARTS=[]; // {svg, name}
 function chartCard(ch,fileBase,setTitle){
   const a=S.axes[ch.kind]; const axes=axesFor(ch.kind,ch.series);
   const isV=ch.look==='vp';
-  const spec={look:ch.look,kind:ch.kind,title:isV?ch.title:a.title,xTitle:a.xt,yTitle:a.yt,note:(isV?S.vp.note:S.cyc.note),axes,series:ch.series,legend:a.legend,fontScale:(isV?S.vp.font:S.cyc.font),txt:(isV?S.vp.txt:S.cyc.txt)||{}};
+  const series=ch.series.map(x=>Object.assign({},x,{_orig:x.name,name:legName(x.name)}));
+  const spec={look:ch.look,kind:ch.kind,title:isV?ch.title:a.title,xTitle:a.xt,yTitle:a.yt,note:(isV?S.vp.note:S.cyc.note),axes,series,legend:a.legend,legDx:a.legDx,legDy:a.legDy,fontScale:(isV?S.vp.font:S.cyc.font),txt:(isV?S.vp.txt:S.cyc.txt)||{}};
   const r=renderChart(spec);
   const idx=CHARTS.length; CHARTS.push({svg:r.svg,name:fileBase,hit:r.hit,W:r.W,H:r.H,spec,noteBox:r.noteBox,legendBox:r.legendBox,set:setTitle});
   return `<figure class="card" data-i="${idx}">${r.svg}<div class="acts"><button type="button" data-a="copy">복사</button><button type="button" data-a="png">PNG</button><button type="button" data-a="svg">SVG</button></div></figure>`;
@@ -1231,24 +1366,38 @@ function axisBox(kind,label,open){
      <span>X</span><input type="number" step="any" data-f="xmin" id="ax-${kind}-xmin" value="${v('xmin')}" ${a.auto?'disabled':''}><input type="number" step="any" data-f="xmax" id="ax-${kind}-xmax" value="${v('xmax')}" ${a.auto?'disabled':''}><input type="number" step="any" data-f="xstep" id="ax-${kind}-xstep" value="${v('xstep')}" ${a.auto?'disabled':''}>
      <span>Y</span><input type="number" step="any" data-f="ymin" id="ax-${kind}-ymin" value="${v('ymin')}" ${a.auto?'disabled':''}><input type="number" step="any" data-f="ymax" id="ax-${kind}-ymax" value="${v('ymax')}" ${a.auto?'disabled':''}><input type="number" step="any" data-f="ystep" id="ax-${kind}-ystep" value="${v('ystep')}" ${a.auto?'disabled':''}></div>
    <div class="fld"><span class="lbl">범례 위치</span><select data-f="legend" id="ax-${kind}-legend">${lg.map(([k,t])=>`<option value="${k}" ${a.legend===k?'selected':''}>${t}</option>`).join('')}</select></div>
+   <div class="g3 g2"><span></span><span>좌우 이동 (px)</span><span>상하 이동 (px)</span><span>범례</span><input type="number" step="1" data-f="legDx" id="ax-${kind}-legDx" value="${v('legDx')}" placeholder="0"><input type="number" step="1" data-f="legDy" id="ax-${kind}-legDy" value="${v('legDy')}" placeholder="0"></div>
+   <span class="hint">좌우는 +가 오른쪽, 상하는 +가 아래쪽입니다. 그래프에서 범례 상자를 마우스로 끌어 옮겨도 됩니다.</span>
+   <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" data-legren="${kind}">범례 이름 바꾸기</button><button class="btn sm" type="button" data-legreset="${kind}">범례 위치 처음대로</button></div>
+   <div class="axdefs"><span class="lbl">이 그래프 설정 (제목 · 축 · 범례)</span>
+     <div class="txtbtns"><button class="btn sm" type="button" data-axsave="${kind}" title="지금 제목, 축 제목, 축 범위, 범례 위치를 내 기본값으로 저장합니다">현재 설정을 내 기본값으로 저장</button>
+     <button class="btn sm" type="button" data-axload="${kind}" ${axDefs()[kind]?'':'disabled'}>내 기본값 불러오기</button>
+     <button class="btn sm" type="button" data-axreset="${kind}" title="엑셀 원본과 같은 처음 설정으로 되돌립니다">처음 상태로</button></div>
+     <span class="hint">${axDefs()[kind]?'저장한 내 기본값이 있습니다.':'마음에 드는 축 범위를 "내 기본값"으로 저장해 두면 언제든 다시 불러올 수 있습니다.'}</span></div>
   </div></details>`;
 }
 function groupList(T,groups){ // groups: [{key,color,cells:[names]}]
   return `<div class="groups">`+groups.map(g=>{ const gOn=!T.goff[g.key]; const n=g.cells.length;
-    return `<div class="grp" data-g="${esc(g.key)}"><div class="gh"><input type="checkbox" data-gon ${gOn?'checked':''} aria-label="그룹 표시"><input type="color" data-gc value="${g.color}" aria-label="그룹 색"><span class="nm" title="${esc(g.key)}">${esc(g.key)}</span><span class="cnt">${n}</span><button class="tg" type="button" data-tg aria-label="셀 목록">▾</button><button class="x" type="button" data-gdel title="이 그룹 데이터 삭제" aria-label="그룹 삭제">×</button></div>
-    <div class="cells" hidden>${g.cells.map((c,i)=>`<div class="c"><input type="checkbox" data-con="${esc(c)}" ${!T.off[c]?'checked':''} aria-label="셀 표시"><span class="sw" style="border-color:${shade(g.color,i,n,T.shadeMode)}"></span><input type="text" data-cn="${esc(c)}" value="${esc(dispName(c))}" aria-label="범례 이름"><button class="x" type="button" data-cdel="${esc(c)}" title="이 셀 데이터 삭제" aria-label="셀 삭제">×</button></div>`).join('')}</div></div>`; }).join('')+`</div>`;
+    return `<div class="grp" data-g="${esc(g.key)}"><div class="gh"><input type="checkbox" data-gon ${gOn?'checked':''} aria-label="그룹 표시"><button type="button" class="swbtn" data-gc style="background:${g.color}" title="그룹 색 바꾸기 (${g.color})" aria-label="그룹 색 바꾸기"></button><span class="nm" title="${esc(g.key)}">${esc(g.key)}</span><span class="cnt">${n}</span><button class="tg" type="button" data-tg aria-label="셀 목록">▾</button><button class="x" type="button" data-gdel title="이 그룹 데이터 삭제" aria-label="그룹 삭제">×</button></div>
+    <div class="cells" hidden>${g.cells.map((c,i)=>`<div class="c"><input type="checkbox" data-con="${esc(c)}" ${!T.off[c]?'checked':''} aria-label="셀 표시"><button type="button" class="sw${S.cellColors&&S.cellColors[c]?' own':''}" data-cc="${esc(c)}" style="border-color:${cellColor(g,c,i,n,T.shadeMode)}" title="이 셀 색 바꾸기" aria-label="셀 색 바꾸기"></button><input type="text" data-cn="${esc(c)}" value="${esc(dispName(c))}" aria-label="범례 이름"><button class="x" type="button" data-cdel="${esc(c)}" title="이 셀 데이터 삭제" aria-label="셀 삭제">×</button></div>`).join('')}</div></div>`; }).join('')+`</div>`;
 }
 
 const TXT_ROWS=[['title','제목','title'],['note','조건 메모','note'],['xt','X축 제목','xt'],['yt','Y축 제목','yt'],['tick','눈금 숫자','tick'],['leg','범례','leg']];
+const TXT_BOLD0=look=>{ const L=LOOK[look]; return {title:!!L.titleB,note:true,xt:!!L.xtB,yt:!!L.ytB,tick:true,leg:false}; };
+const TXTDEF_KEY='cellgraph.txtdef';
+function txtDefs(){ return S.txtDef||(S.txtDef=store.get(TXTDEF_KEY,{})||{}); }
 function textBox(T,look){
-  const L=LOOK[look], k=T.font||1; T.txt=T.txt||{};
+  const L=LOOK[look], k=T.font||1, B0=TXT_BOLD0(look); T.txt=T.txt||{}; const hasDef=!!txtDefs()[look];
   const v=(key,f)=>{ const o=T.txt[key]; return o&&o[f]!=null&&o[f]!==''?o[f]:''; };
   return `<details class="ax" id="txtBox" ${T.txtOpen?'open':''}><summary>글자 크기 · 위치</summary><div class="in">
-    <div class="txtgrid"><span></span><span>크기 (pt)</span><span>좌우 (px)</span><span>상하 (px)</span>
-    ${TXT_ROWS.map(([key,name,lk])=>`<span>${name}</span><input type="number" step="0.5" min="4" data-tk="${key}" data-tf="sz" value="${v(key,'sz')}" placeholder="${(+(L[lk]*k).toFixed(1))}" aria-label="${name} 크기"><input type="number" step="1" data-tk="${key}" data-tf="dx" value="${v(key,'dx')}" placeholder="0" aria-label="${name} 좌우 이동"><input type="number" step="1" data-tk="${key}" data-tf="dy" value="${v(key,'dy')}" placeholder="0" aria-label="${name} 상하 이동">`).join('')}
+    <div class="txtgrid"><span></span><span>크기 (pt)</span><span>좌우 (px)</span><span>상하 (px)</span><span>굵게</span>
+    ${TXT_ROWS.map(([key,name,lk])=>`<span>${name}</span><input type="number" step="0.5" min="4" data-tk="${key}" data-tf="sz" value="${v(key,'sz')}" placeholder="${(+(L[lk]*k).toFixed(1))}" aria-label="${name} 크기"><input type="number" step="1" data-tk="${key}" data-tf="dx" value="${v(key,'dx')}" placeholder="0" aria-label="${name} 좌우 이동"><input type="number" step="1" data-tk="${key}" data-tf="dy" value="${v(key,'dy')}" placeholder="0" aria-label="${name} 상하 이동"><label class="bchk"><input type="checkbox" data-tk="${key}" data-tf="b" ${(T.txt[key]&&T.txt[key].b!=null?T.txt[key].b:B0[key])?'checked':''} aria-label="${name} 굵게"></label>`).join('')}
     </div>
     <span class="hint">빈칸은 기본값입니다. 좌우는 +가 오른쪽, 상하는 +가 아래쪽입니다. 눈금 숫자의 좌우는 Y축 숫자, 상하는 X축 숫자를 옮깁니다.</span>
-    <button class="btn sm" type="button" id="txtReset">기본값으로</button>
+    <div class="txtbtns"><button class="btn sm" type="button" id="txtSaveDef" title="지금 설정을 내 기본값으로 저장합니다. 다음에 '내 기본값'을 누르면 이 설정으로 돌아옵니다.">현재 설정을 내 기본값으로 저장</button>
+      <button class="btn sm" type="button" id="txtLoadDef" ${hasDef?'':'disabled'} title="저장해 둔 내 기본값으로 되돌립니다">내 기본값 불러오기</button>
+      <button class="btn sm" type="button" id="txtReset" title="처음 상태(엑셀과 같은 모양)로 되돌립니다">처음 상태로</button></div>
+    <span class="hint">${hasDef?'저장한 내 기본값이 있습니다. 글자 설정이 비어 있을 때(다른 컴퓨터 등)는 내 기본값으로 시작합니다.':'마음에 드는 설정을 "내 기본값"으로 저장해 두면 언제든 다시 불러올 수 있습니다.'}</span>
   </div></details>`;
 }
 function renderRail(){
@@ -1316,9 +1465,14 @@ function bindRail(){
     document.querySelectorAll('[data-lab]').forEach(cb=>cb.addEventListener('change',e=>{ const l=e.target.dataset.lab; if(e.target.checked) delete S.vp.laboff[l]; else S.vp.laboff[l]=1; persist(); renderSheetsOnly(); }));
   }
   { const T=S.tab==='cyc'?S.cyc:S.vp; T.txt=T.txt||{};
-    document.querySelectorAll('[data-tk]').forEach(inp=>inp.addEventListener('input',()=>{ const key=inp.dataset.tk, f=inp.dataset.tf; const o=T.txt[key]||(T.txt[key]={}); if(inp.value===''||!isFinite(+inp.value)) delete o[f]; else o[f]=+inp.value; persist(); deb(); }));
+    const look=S.tab==='cyc'?'cycle':'vp';
+    document.querySelectorAll('[data-tk]').forEach(inp=>inp.addEventListener(inp.type==='checkbox'?'change':'input',()=>{ const key=inp.dataset.tk, f=inp.dataset.tf; const o=T.txt[key]||(T.txt[key]={});
+      if(f==='b'){ const def=TXT_BOLD0(look)[key]; if(inp.checked===def) delete o.b; else o.b=inp.checked; persist(); renderSheetsOnly(); return; }
+      if(inp.value===''||!isFinite(+inp.value)) delete o[f]; else o[f]=+inp.value; persist(); deb(); }));
+    on('txtSaveDef','click',()=>{ const d=txtDefs(); d[look]=JSON.parse(JSON.stringify(T.txt||{})); store.set(TXTDEF_KEY,d); persist(); renderRail(); toast('지금 글자 설정을 내 기본값으로 저장했습니다.'); });
+    on('txtLoadDef','click',()=>{ const d=txtDefs()[look]; if(!d) return; T.txt=JSON.parse(JSON.stringify(d)); persist(); renderRail(); renderSheetsOnly(); toast('내 기본값을 불러왔습니다.'); });
     const tb=document.getElementById('txtBox'); if(tb) tb.addEventListener('toggle',()=>{ T.txtOpen=tb.open; persist(); });
-    on('txtReset','click',()=>{ T.txt={}; document.querySelectorAll('[data-tk]').forEach(i=>i.value=''); persist(); renderSheetsOnly(); toast('글자 크기와 위치를 기본값으로 되돌렸습니다.'); }); }
+    on('txtReset','click',()=>{ T.txt={}; persist(); renderRail(); renderSheetsOnly(); toast('글자 설정을 처음 상태로 되돌렸습니다. (저장한 내 기본값은 그대로 있습니다)'); }); }
   document.querySelectorAll('[data-all]').forEach(b=>b.addEventListener('click',()=>{
     const [what,mode]=b.dataset.all.split('-'); const on=mode==='on';
     if(what==='lab'){ const M=vpModel(); if(M) M.labels.forEach(l=>{ if(on) delete S.vp.laboff[l]; else S.vp.laboff[l]=1; }); }
@@ -1333,8 +1487,9 @@ function bindRail(){
   segBind(S.tab==='cyc'?'cCmp':'vCmp','cmpBy',true);
   document.querySelectorAll('.grp').forEach(g=>{ const key=g.dataset.g;
     g.querySelector('[data-gon]').addEventListener('change',e=>{ if(e.target.checked) delete T.goff[key]; else T.goff[key]=1; persist(); renderSheetsOnly(); });
-    g.querySelector('[data-gc]').addEventListener('input',e=>{ S.colors[key]=e.target.value.toUpperCase(); persist(); deb(); });
-    g.querySelector('[data-gc]').addEventListener('change',()=>renderAll());
+    g.querySelector('[data-gc]').addEventListener('click',e=>{ openColorPop(e.currentTarget,S.colors[key],h=>{ S.colors[key]=h; persist(); renderAll(); }); });
+    g.querySelectorAll('[data-cc]').forEach(b=>b.addEventListener('click',e=>{ const c=b.dataset.cc; S.cellColors=S.cellColors||{};
+      openColorPop(e.currentTarget,S.cellColors[c]||'',h=>{ if(h) S.cellColors[c]=h; else delete S.cellColors[c]; persist(); renderAll(); },{reset:'그룹 색 따르기 (진하기만 다르게)'}); }));
     g.querySelector('[data-gdel]').addEventListener('click',()=>removeData(S.tab,key,null));
     g.querySelectorAll('[data-cdel]').forEach(b=>b.addEventListener('click',()=>removeData(S.tab,key,b.dataset.cdel)));
     g.querySelector('[data-tg]').addEventListener('click',e=>{ const c=g.querySelector('.cells'); c.hidden=!c.hidden; e.target.textContent=c.hidden?'▾':'▴'; });
@@ -1348,8 +1503,49 @@ function bindRail(){
         a[f]=(inp.type==='number')?(inp.value===''?null:+inp.value):inp.value; persist(); deb(); };
       inp.addEventListener(inp.type==='checkbox'||inp.tagName==='SELECT'?'change':'input',h); });
   });
+  document.querySelectorAll('[data-legren]').forEach(b=>b.addEventListener('click',()=>openLegRename()));
+  document.querySelectorAll('[data-axsave]').forEach(b=>b.addEventListener('click',()=>{ const k=b.dataset.axsave; const d=axDefs(); d[k]=JSON.parse(JSON.stringify(S.axes[k])); store.set(AXDEF_KEY,d); S.axDef=d; persist(); renderRail(); toast('지금 그래프 설정(제목·축·범례)을 내 기본값으로 저장했습니다.'); }));
+  document.querySelectorAll('[data-axload]').forEach(b=>b.addEventListener('click',()=>{ const k=b.dataset.axload; const d=axDefs()[k]; if(!d) return; S.axes[k]=JSON.parse(JSON.stringify(d)); persist(); renderAll(); toast('내 기본값을 불러왔습니다.'); }));
+  document.querySelectorAll('[data-axreset]').forEach(b=>b.addEventListener('click',()=>{ const k=b.dataset.axreset; S.axes[k]=JSON.parse(JSON.stringify(AX0[k])); persist(); renderAll(); toast('처음 상태로 되돌렸습니다. (저장한 내 기본값은 그대로 있습니다)'); }));
+  document.querySelectorAll('[data-legreset]').forEach(b=>b.addEventListener('click',()=>{ const a=S.axes[b.dataset.legreset]; delete a.legDx; delete a.legDy; persist(); renderAll(); toast('범례 위치를 처음대로 되돌렸습니다.'); }));
   on('bHelp','click',showHelp);
 }
+/* ---------------- legend names: click a legend entry, or rename all at once ---------------- */
+function renameLegend(orig){
+  S.legNames=S.legNames||{}; const cur=legName(orig);
+  modal(`<h2>범례 이름 바꾸기</h2><p class="hint">원래 이름: ${esc(orig)}</p><input type="text" id="lgNm" value="${esc(cur)}" style="width:100%"><p class="hint">비우고 저장하면 원래 이름으로 돌아갑니다.</p><div class="row" style="justify-content:flex-end"><button class="btn primary" type="button" id="lgOk">저장</button></div>`,m=>{
+    const inp=m.querySelector('#lgNm'); inp.focus(); inp.select();
+    const ok=()=>{ const v=inp.value.trim(); if(v&&v!==orig) S.legNames[orig]=v; else delete S.legNames[orig]; m.remove(); persist(); renderSheetsOnly(); };
+    m.querySelector('#lgOk').onclick=ok; inp.addEventListener('keydown',e=>{ if(e.key==='Enter') ok(); });
+  });
+}
+function openLegRename(){
+  S.legNames=S.legNames||{}; const names=[]; const seen=new Set();
+  CHARTS.forEach(C=>C.spec.series.forEach(x=>{ const o=x._orig||x.name; if(!seen.has(o)){ seen.add(o); names.push(o); } }));
+  if(!names.length){ toast('지금 보이는 그래프에 범례가 없습니다.'); return; }
+  modal(`<h2>범례 이름 바꾸기</h2><p class="hint">지금 보이는 그래프의 범례입니다. 오른쪽 칸을 고치면 모든 그래프와 엑셀 내보내기에 반영됩니다. 빈칸은 원래 이름입니다.</p>
+    <div class="legren">${names.map((n,i)=>`<span>${esc(n)}</span><input type="text" data-ln="${i}" value="${esc(S.legNames[n]||'')}" placeholder="${esc(n)}">`).join('')}</div>
+    <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn sm" type="button" id="lnClear">모두 원래대로</button><button class="btn primary" type="button" id="lnOk">저장</button></div>`,m=>{
+    m.querySelector('#lnClear').onclick=()=>m.querySelectorAll('[data-ln]').forEach(i=>i.value='');
+    m.querySelector('#lnOk').onclick=()=>{ m.querySelectorAll('[data-ln]').forEach(i=>{ const o=names[+i.dataset.ln], v=i.value.trim(); if(v&&v!==o) S.legNames[o]=v; else delete S.legNames[o]; }); m.remove(); persist(); renderSheetsOnly(); toast('범례 이름을 바꿨습니다.'); };
+  });
+}
+// legend: click a name to rename it, drag the box to move it
+(function(){
+  let drag=null;
+  document.addEventListener('pointerdown',e=>{
+    const g=e.target.closest&&e.target.closest('#sheets figure.card svg [data-legg]'); if(!g||e.button!==0) return;
+    const fig=g.closest('figure.card'); const C=CHARTS[+fig.dataset.i]; if(!C) return; const svg=g.ownerSVGElement;
+    drag={g,C,svg,x0:e.clientX,y0:e.clientY,moved:false,leg:e.target.closest('[data-leg]'),sc:C.W/svg.getBoundingClientRect().width};
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove',e=>{ if(!drag) return; const dx=(e.clientX-drag.x0)*drag.sc, dy=(e.clientY-drag.y0)*drag.sc;
+    if(Math.abs(dx)+Math.abs(dy)>3) drag.moved=true; if(drag.moved) drag.g.setAttribute('transform',`translate(${dx.toFixed(1)},${dy.toFixed(1)})`); });
+  document.addEventListener('pointerup',e=>{ if(!drag) return; const d=drag; drag=null;
+    if(!d.moved){ if(d.leg){ const s=d.C.spec.series[+d.leg.dataset.leg]; if(s) renameLegend(s._orig||s.name); } return; }
+    const a=S.axes[d.C.spec.kind]; a.legDx=Math.round((+a.legDx||0)+(e.clientX-d.x0)*d.sc); a.legDy=Math.round((+a.legDy||0)+(e.clientY-d.y0)*d.sc);
+    persist(); renderAll(); toast('범례 위치를 옮겼습니다. (같은 종류의 그래프에 모두 적용)'); });
+})();
 function firstSeries(kind){
   if(kind==='vp'){ const s=vpSets()[0]; return s&&s.charts[0]?s.charts[0].series:[]; }
   const set=cycleSets()[0]; if(!set) return []; const ch=cycleCharts(set).find(c=>c.kind===kind); return ch?ch.series:[];
@@ -1507,7 +1703,7 @@ const LN=(w,hex,dash)=>`<a:ln w="${Math.round(w)}" cap="rnd"><a:solidFill><a:srg
 
 function chartXml(C,refs,hasNote){
   const sp=C.spec, L=LOOK[sp.look], k=sp.fontScale||1, ax=sp.axes;
-  const TX=sp.txt||{}; const tsz=(key,def)=>(TX[key]&&+TX[key].sz>0)?+TX[key].sz:def; const toff=(key,d)=>+(TX[key]&&TX[key][d])||0;
+  const TX=sp.txt||{}; const tsz=(key,def)=>(TX[key]&&+TX[key].sz>0)?+TX[key].sz:def; const toff=(key,d)=>+(TX[key]&&TX[key][d])||0; const bd=(key,def)=>(TX[key]&&TX[key].b!=null)?!!TX[key].b:!!def;
   const fmt=st=>{ const d=decimals(st); return d?'0.'+'0'.repeat(d):'0'; };
   const ser=sp.series.map((s,i)=>{ const r=refs[i]; const lw=(s.lineW||2)*EMU;
     const line=s.line===false?'<a:ln><a:noFill/></a:ln>':LN(lw,s.color);
@@ -1516,16 +1712,16 @@ function chartXml(C,refs,hasNote){
   const axis=(id,cross,pos,a,title,tpt,tb,rot,grid)=>`<c:valAx><c:axId val="${id}"/><c:scaling><c:orientation val="minMax"/><c:max val="${a.max}"/><c:min val="${a.min}"/></c:scaling><c:delete val="0"/><c:axPos val="${pos}"/>`+
     (grid?`<c:majorGridlines><c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="BFBFBF"/></a:solidFill><a:prstDash val="sysDash"/></a:ln></c:spPr></c:majorGridlines>`:'')+
     (title?richTitle(title,tpt,tb,rot):'')+`<c:numFmt formatCode="${fmt(a.step)}" sourceLinked="0"/><c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/>`+
-    `<c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr>${txPr(tsz('tick',L.tick*k),true)}<c:crossAx val="${cross}"/><c:crosses val="min"/><c:crossBetween val="midCat"/><c:majorUnit val="${a.step}"/></c:valAx>`;
+    `<c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr>${txPr(tsz('tick',L.tick*k),bd('tick',1))}<c:crossAx val="${cross}"/><c:crosses val="min"/><c:crossBetween val="midCat"/><c:majorUnit val="${a.step}"/></c:valAx>`;
   const lb=C.legendBox; const lpos={top:'t',bottom:'b'}[sp.legend]||'r';
   const legend=(sp.legend==='none'||!lb)?'':`<c:legend><c:legendPos val="${lpos}"/><c:layout><c:manualLayout><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="${lb.x.toFixed(4)}"/><c:y val="${lb.y.toFixed(4)}"/><c:w val="${lb.w.toFixed(4)}"/><c:h val="${lb.h.toFixed(4)}"/></c:manualLayout></c:layout><c:overlay val="1"/>`+
-    `<c:spPr><a:solidFill><a:srgbClr val="F2F2F2"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln><a:effectLst><a:outerShdw blurRad="50800" dist="38100" dir="2700000" algn="tl" rotWithShape="0"><a:prstClr val="black"><a:alpha val="40000"/></a:prstClr></a:outerShdw></a:effectLst></c:spPr>${txPr(lb.sz||L.leg*k,false)}</c:legend>`;
+    `<c:spPr><a:solidFill><a:srgbClr val="F2F2F2"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln><a:effectLst><a:outerShdw blurRad="50800" dist="38100" dir="2700000" algn="tl" rotWithShape="0"><a:prstClr val="black"><a:alpha val="40000"/></a:prstClr></a:outerShdw></a:effectLst></c:spPr>${txPr(lb.sz||L.leg*k,bd('leg',0))}</c:legend>`;
   const P=L.plot;
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
-    '<c:roundedCorners val="0"/><c:chart>'+(sp.title?richTitle(sp.title,tsz('title',L.title*k),!!L.titleB,false,[Math.max(0,(L.W/2+toff('title','dx')-tw(sp.title,tsz('title',L.title*k)*PT,!!L.titleB)/2-4)/L.W),Math.max(0,0.006+toff('title','dy')/L.H)]):'')+'<c:autoTitleDeleted val="'+(sp.title?0:1)+'"/>'+
+    '<c:roundedCorners val="0"/><c:chart>'+(sp.title?richTitle(sp.title,tsz('title',L.title*k),bd('title',L.titleB),false,[Math.max(0,(L.W/2+toff('title','dx')-tw(sp.title,tsz('title',L.title*k)*PT,bd('title',L.titleB))/2-4)/L.W),Math.max(0,0.006+toff('title','dy')/L.H)]):'')+'<c:autoTitleDeleted val="'+(sp.title?0:1)+'"/>'+
     `<c:plotArea><c:layout><c:manualLayout><c:layoutTarget val="inner"/><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="${P[0]}"/><c:y val="${P[1]}"/><c:w val="${P[2]}"/><c:h val="${P[3]}"/></c:manualLayout></c:layout>`+
     `<c:scatterChart><c:scatterStyle val="lineMarker"/><c:varyColors val="0"/>${ser}<c:axId val="501"/><c:axId val="502"/></c:scatterChart>`+
-    axis(501,502,'b',ax.x,sp.xTitle,tsz('xt',L.xt*k),!!L.xtB,false,false)+axis(502,501,'l',ax.y,sp.yTitle,tsz('yt',L.yt*k),!!L.ytB,true,true)+
+    axis(501,502,'b',ax.x,sp.xTitle,tsz('xt',L.xt*k),bd('xt',L.xtB),false,false)+axis(502,501,'l',ax.y,sp.yTitle,tsz('yt',L.yt*k),bd('yt',L.ytB),true,true)+
     '<c:spPr><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:srgbClr val="FFFFFF"/></a:gs><a:gs pos="100000"><a:srgbClr val="D9D9D9"/></a:gs></a:gsLst><a:lin ang="5400000" scaled="0"/></a:gradFill><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr></c:plotArea>'+
     legend+'<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>'+
     '<c:spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr>'+
@@ -1535,7 +1731,7 @@ function chartXml(C,refs,hasNote){
 function noteXml(C){
   const L=LOOK[C.spec.look], k=C.spec.fontScale||1, TX=C.spec.txt||{}; const pt=(TX.note&&+TX.note.sz>0)?+TX.note.sz:L.note*k; const tpx=L.title*k*PT; const top=(C.spec.title?(L.H*.006+tpx*1.32+3)/L.H:C.noteBox.y1)+(+(TX.note&&TX.note.dy)||0)/L.H;
   const nb=Object.assign({},C.noteBox); nb.y1=Math.max(nb.y1,top); nb.y2=L.plot[1]-.004;
-  const paras=nb.lines.map(t=>`<a:p><a:pPr algn="l"/>${txRun(t,pt,true)}</a:p>`).join('');
+  const nbold=(TX.note&&TX.note.b!=null)?!!TX.note.b:true; const paras=nb.lines.map(t=>`<a:p><a:pPr algn="l"/>${txRun(t,pt,nbold)}</a:p>`).join('');
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<c:userShapes xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:cdr="http://schemas.openxmlformats.org/drawingml/2006/chartDrawing">'+
     `<cdr:relSizeAnchor><cdr:from><cdr:x>${nb.x1.toFixed(4)}</cdr:x><cdr:y>${Math.max(0,nb.y1).toFixed(4)}</cdr:y></cdr:from><cdr:to><cdr:x>${nb.x2.toFixed(4)}</cdr:x><cdr:y>${Math.max(nb.y1+.02,nb.y2).toFixed(4)}</cdr:y></cdr:to>`+
     '<cdr:sp macro="" textlink=""><cdr:nvSpPr><cdr:cNvPr id="2" name="조건 메모"/><cdr:cNvSpPr txBox="1"/></cdr:nvSpPr><cdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></cdr:spPr>'+
@@ -1636,6 +1832,7 @@ const HELP=`<h2>입력 형식 안내</h2>
 · 그 위 행에 사이클 이름 (예: <code>1C_10th</code>), 그 위 <code>Lot</code> 행에 셀 이름<br>
 · 충전 후 방전 데이터가 같은 칸에 이어져 있어도 용량이 0으로 돌아가는 지점에서 자동으로 나눕니다.</p>
 <p><b>여러 시트 비교</b><br>· 같은 종류(사이클 또는 전압 프로파일)의 시트가 2개 이상이면 왼쪽 "데이터 시트"가 체크 목록이 됩니다. 여러 개를 체크하면 한 그래프에 겹쳐 그리고, 색은 "시트별" 또는 "셀 이름별"로 묶을 수 있습니다. 전압 프로파일은 사이클 이름(예: 1C_10th와 1.0C_10th)을 같은 사이클로 맞춰 겹칩니다.</p>
+<p><b>작업 파일 (.cgm)</b><br>· 파일 줄 오른쪽 <b>작업 파일 내보내기</b>를 누르면 불러온 데이터와 그래프 설정(색, 축, 글자, 범례 이름)이 .cgm 파일 하나로 저장됩니다.<br>· 다른 사람이 자기 계정의 그래프 메이커에서 <b>새 파일로 바꾸기</b>로 이 파일을 열면 같은 그래프가 그대로 나오고, 그 사람 저장 공간에 저장됩니다.</p>
 <p><b>충방전기 원본 (.cex · .wrd · TOYO)</b><br>· .cex, WonATech .wrd 파일을 그대로 열면 셀 데이터 변환기와 같은 방식으로 읽어 바로 그래프를 그립니다. 열 때 셀 이름, 질량, Formation 사이클 수를 묻습니다. .wrd는 파일에 적힌 활물질 무게를 질량 칸에 미리 채웁니다.<br>· TOYO는 시험 폴더를 통째로 .zip으로 묶어 넣거나 폴더째 끌어다 놓으세요. 000001, 000002 … 숫자 파일(측정 데이터)이 꼭 있어야 하고, CAPACITY.LOG가 있으면 용량을 그 값에 맞춥니다. 나머지 파일은 자동으로 건너뜁니다.</p>
 <p><b>연구실 양식 (셀 데이터 변환기에서 저장한 엑셀)</b><br>· Cycle 시트: 셀마다 <code>Chg.</code> 3칸(mAh/g · mAh/cm2 · mAh) · <code>Dis.</code> 3칸 · <code>Effi.</code> · <code>Ret.</code> — mAh/g에 값이 있으면 mAh/g, 없으면 mAh를 씁니다.<br>· Profile 시트: 사이클마다 Capacity 3칸 · Current · Time · Volt 6칸 묶음을 그대로 읽습니다.</p>
 <p><b>색 그룹</b>: 셀 이름 끝의 <code>#1</code>, <code>#2</code> 를 뺀 이름이 같으면 같은 색 그룹이 되고, 엑셀처럼 #1 진하게 → #2 중간 → #3 연하게 그려집니다.</p>`;
