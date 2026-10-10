@@ -51,6 +51,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
 .btn.sm{font-size:12px;padding:4px 8px}
 .btn:focus-visible,.seg button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .filebar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px}
+.filebar .fbtog{font-weight:600}
 .filebar .src{font-size:12.5px;color:var(--ink2);margin-right:4px}
 .chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;display:inline-flex;gap:6px;align-items:center;background:var(--sheet)}
 .chip b{font-weight:600}
@@ -87,12 +88,19 @@ input[type=color]{width:24px;height:22px;padding:0;border:1px solid var(--line);
 .cells .sw{width:14px;height:14px;border-radius:50%;border:3px solid;flex:none;background:#fff;padding:0;cursor:pointer}
 .cells .sw.own{box-shadow:0 0 0 1.5px var(--accent)}
 .swbtn{width:22px;height:20px;border:1px solid var(--line);border-radius:4px;padding:0;cursor:pointer;flex:none}
-.cpop{position:fixed;z-index:80;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;box-shadow:0 12px 32px -12px rgba(0,0,0,.45);width:min(420px,calc(100vw - 16px));display:grid;gap:8px}
+.cpop{position:fixed;z-index:80;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;box-shadow:0 12px 32px -12px rgba(0,0,0,.45);width:min(470px,calc(100vw - 16px));display:grid;gap:8px}
 .cpcols{display:grid;grid-template-columns:240px minmax(0,1fr);gap:12px}
 @media (max-width:460px){.cpcols{grid-template-columns:minmax(0,1fr)}}
 .cpleft,.cpright{display:grid;gap:6px;align-content:start}
 .cpright{border-left:1px solid var(--line2);padding-left:12px}
 @media (max-width:460px){.cpright{border-left:0;padding-left:0;border-top:1px solid var(--line2);padding-top:8px}}
+.cpspec{display:grid;grid-template-columns:minmax(0,1fr) 14px 10px;gap:0 6px;align-items:stretch;height:120px}
+.cpspec canvas{width:100%;height:100%;display:block;border:1px solid var(--line);cursor:crosshair;touch-action:none}
+.cpspec .cplum{cursor:ns-resize}
+.cpfw,.cplw{position:relative;min-width:0}
+.cpmk{position:absolute;width:11px;height:11px;margin:-6px 0 0 -6px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #000;pointer-events:none}
+.cparr{position:relative}
+.cparr i{position:absolute;left:0;width:0;height:0;border-style:solid;border-width:5px 8px 5px 0;border-color:transparent var(--ink) transparent transparent;margin-top:-5px}
 .cpprev{height:34px;border-radius:4px;border:1px solid var(--line)}
 .cprgb{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:6px;font-size:12px;color:var(--ink2)}
 .cprgb input{font-family:var(--mono);font-size:12px;padding:3px 6px;min-width:0}
@@ -151,6 +159,8 @@ button.x:hover{color:#c62828;background:var(--line2)}
 .btn2.add{border:1.5px dashed var(--accent);color:var(--accent);background:var(--accent-soft)}
 .btn2.add .ic{background:var(--accent);color:var(--accent-ink)}
 .btn2.add:hover{border-style:solid}
+.btn.danger{background:#c62828;border-color:#c62828;color:#fff;font-weight:600}
+.btn.danger:hover{filter:brightness(1.08);color:#fff}
 .cloud{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);white-space:nowrap;background:none;border:1px solid transparent;border-radius:999px;padding:3px 8px;cursor:pointer;font-family:inherit}
 .cloud:hover{border-color:var(--line)}
 .cloud.broken .cd{background:#c62828}
@@ -754,7 +764,8 @@ function openColorPop(anchor,cur,onPick,opt){
   pop.innerHTML=`<div class="cpcols"><div class="cpleft"><div class="cpt">테마 색</div><div class="cpg">${PPT_THEME.map(c=>sw(c[0])).join('')}</div><div class="cpg cpg2">${[1,2,3,4,5].map(r=>PPT_THEME.map(c=>sw(c[r])).join('')).join('')}</div>
     <div class="cpt">표준 색</div><div class="cpg">${PPT_STD.map(sw).join('')}</div>
     ${recent.length?`<div class="cpt">최근 사용한 색</div><div class="cpg">${recent.map(h=>sw(h.replace('#',''))).join('')}</div>`:''}</div>
-    <div class="cpright"><div class="cpt">다른 색 (RGB)</div>
+    <div class="cpright"><div class="cpt">다른 색 (스펙트럼 · RGB)</div>
+      <div class="cpspec"><div class="cpfw"><canvas class="cpfield" width="150" height="120" aria-label="색 스펙트럼 (가로: 색조, 세로: 채도)"></canvas><span class="cpmk"></span></div><div class="cplw"><canvas class="cplum" width="14" height="120" aria-label="밝기"></canvas></div><div class="cparr"><i></i></div></div>
       <div class="cpprev" style="background:${c0}"></div>
       <label class="cprgb"><span>R</span><input type="number" min="0" max="255" class="cpr" value="${rgb[0]}"></label>
       <label class="cprgb"><span>G</span><input type="number" min="0" max="255" class="cpgg" value="${rgb[1]}"></label>
@@ -776,10 +787,25 @@ function openColorPop(anchor,cur,onPick,opt){
   pop.addEventListener('click',e=>{ const b=e.target.closest('.cp'); if(b) pick(b.dataset.hex); });
   const nat=pop.querySelector('.cpnat'), hex=pop.querySelector('.cphex'), prev=pop.querySelector('.cpprev'), R=pop.querySelector('.cpr'), G=pop.querySelector('.cpgg'), B=pop.querySelector('.cpb');
   const h2=v=>Math.max(0,Math.min(255,Math.round(+v||0))).toString(16).padStart(2,'0');
-  const setAll=(h,from)=>{ h=h.toUpperCase(); prev.style.background=h; if(from!=='nat') nat.value=h.toLowerCase(); if(from!=='hex') hex.value=h; if(from!=='rgb'){ R.value=parseInt(h.substr(1,2),16); G.value=parseInt(h.substr(3,2),16); B.value=parseInt(h.substr(5,2),16); } };
+  /* Windows-style spectrum: x = hue, y = saturation (top full), side bar = luminance */
+  const fld=pop.querySelector('.cpfield'), lum=pop.querySelector('.cplum'), mk=pop.querySelector('.cpmk'), arr=pop.querySelector('.cparr i');
+  const hex2hsl=h=>{ const [r,g,b]=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255); const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2; let hh=0, ss=0;
+    if(mx!==mn){ const d=mx-mn; ss=l>.5?d/(2-mx-mn):d/(mx+mn); hh=mx===r?((g-b)/d+(g<b?6:0)):mx===g?((b-r)/d+2):((r-g)/d+4); hh/=6; } return [hh,ss,l]; };
+  let HSL=hex2hsl(c0);
+  (()=>{ const c=fld.getContext('2d'), W=fld.width, H=fld.height, im=c.createImageData(W,H);
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const h=hsl2hex(x/(W-1),1-y/(H-1),.5), o=(y*W+x)*4; im.data[o]=parseInt(h.substr(1,2),16); im.data[o+1]=parseInt(h.substr(3,2),16); im.data[o+2]=parseInt(h.substr(5,2),16); im.data[o+3]=255; }
+    c.putImageData(im,0,0); })();
+  const drawLum=()=>{ const c=lum.getContext('2d'), H=lum.height; for(let y=0;y<H;y++){ c.fillStyle=hsl2hex(HSL[0],HSL[1],1-y/(H-1)); c.fillRect(0,y,lum.width,1); } };
+  const drawMarks=()=>{ mk.style.left=(HSL[0]*100)+'%'; mk.style.top=((1-HSL[1])*100)+'%'; arr.style.top=((1-HSL[2])*100)+'%'; };
+  const fromHSL=()=>{ setAll(hsl2hex(HSL[0],HSL[1],HSL[2]),'hsl'); drawMarks(); };
+  const drag=(el,fn)=>el.addEventListener('pointerdown',e=>{ e.preventDefault(); el.setPointerCapture(e.pointerId); const mv=ev=>{ const r=el.getBoundingClientRect(); fn(Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))); }; mv(e); el.onpointermove=mv; el.onpointerup=()=>{ el.onpointermove=null; }; });
+  drag(fld,(x,y)=>{ HSL[0]=Math.min(x,.999); HSL[1]=1-y; if(HSL[2]<=0.02||HSL[2]>=0.98) HSL[2]=.5; drawLum(); fromHSL(); });
+  drag(lum,(x,y)=>{ HSL[2]=1-y; fromHSL(); });
+  const setAll=(h,from)=>{ h=h.toUpperCase(); prev.style.background=h; if(from!=='hsl'){ const n=hex2hsl(h); if(n[1]>0) HSL[0]=n[0]; HSL[1]=n[1]; HSL[2]=n[2]; drawLum(); drawMarks(); } if(from!=='nat') nat.value=h.toLowerCase(); if(from!=='hex') hex.value=h; if(from!=='rgb'){ R.value=parseInt(h.substr(1,2),16); G.value=parseInt(h.substr(3,2),16); B.value=parseInt(h.substr(5,2),16); } };
   [R,G,B].forEach(x=>x.addEventListener('input',()=>setAll('#'+h2(R.value)+h2(G.value)+h2(B.value),'rgb')));
   hex.addEventListener('input',()=>{ let v=hex.value.trim(); if(v[0]!=='#') v='#'+v; if(/^#[0-9a-f]{6}$/i.test(v)) setAll(v,'hex'); });
   nat.addEventListener('input',()=>setAll(nat.value,'nat'));
+  drawLum(); drawMarks();
   pop.querySelectorAll('.cprgb input').forEach(x=>x.addEventListener('keydown',e=>{ if(e.key==='Enter') pop.querySelector('.cpok').click(); }));
   pop.querySelector('.cpok').addEventListener('click',()=>pick('#'+h2(R.value)+h2(G.value)+h2(B.value)));
   const rs=pop.querySelector('.cpreset'); if(rs) rs.addEventListener('click',()=>{ onPick(null); close(); });
@@ -938,6 +964,8 @@ for(const k in EXCEL_COLORS) if(!S.colors[k]) S.colors[k]=EXCEL_COLORS[k];
 const settingsObj=()=>({axDef:S.axDef||null,colors:S.colors,cellColors:S.cellColors||{},legNames:S.legNames||{},names:S.names,cyc:S.cyc,vp:Object.assign({},S.vp),axes:S.axes,cex:S.cex,txtDef:S.txtDef||null});
 let saveT=0; function persist(){clearTimeout(saveT);saveT=setTimeout(()=>{ store.set('cellgraph.v1',settingsObj()); if(typeof persistData==='function') persistData(); },300);}
 
+// colour belongs to the data, not to how it is grouped on screen: when a sheet-group holds one original group, that group's colour is used and changed
+function colorKey(key,items,taken){ const o=new Set(items.map(c=>(c._o&&c._o.group)||c.group)); let ck=o.size===1?[...o][0]:key; if(taken){ if(ck!==key&&taken.has(ck)) ck=key; taken.add(ck); } return ck; }
 function groupColor(key,order){ if(!S.colors[key]){ const used=new Set(Object.values(S.colors)); let c=PALETTE.find(p=>!used.has(p)); if(!c) c=PALETTE[order%PALETTE.length]; S.colors[key]=c; } return S.colors[key]; }
 const dispName=n=>S.names[n]||n;
 const legName=n=>(S.legNames&&S.legNames[n])||n;
@@ -971,7 +999,7 @@ async function importProject(f){
     const zip=await JSZip.loadAsync(await f.arrayBuffer()); const e=zip.file('d.json'); if(!e) throw new Error('not a work file');
     const p=JSON.parse(await e.async('string')); if(p.app!=='cdl-graph-maker'||!Array.isArray(p.sources)) throw new Error('not a work file');
     if(S.sources.length&&!S.isSample&&!confirm('지금 불러온 데이터와 그래프 설정을 이 작업 파일의 내용으로 바꿀까요?\n(바꾸기 전 상태로 되돌리려면 지금 데이터를 먼저 "작업 파일 내보내기"로 저장해 두세요)')) return false;
-    snapshot(); applyPayload(p,Date.now()); persist(); persistData();
+    snapshot('작업 파일 열기'); applyPayload(p,Date.now()); persist(); persistData();
     toast(`"${f.name}" 작업 파일을 열었습니다. 내 저장 공간에도 저장합니다.`); return true;
   }catch(err){ console.warn(err); toast(`"${f.name}"은(는) 그래프 메이커 작업 파일이 아닙니다.`); return false; }
 }
@@ -1006,8 +1034,8 @@ async function loadFiles(files,mode){
   }
   if(cexList.length){ renderFilebar(); const opt=await askCex(cexList); if(!opt){ if(!out.length){ renderFilebar(); return; } } else cexList.forEach((c,i)=>out.push(...cexToSources(c,opt,i))); if(opt) applyCexDefaults(opt,cexList); }
   if(!out.length){ toast('그래프로 만들 수 있는 시트를 찾지 못했습니다. 아래 "엑셀에서 붙여넣기" 도움말의 형식을 확인하세요.'); renderFilebar(); return; }
-  if(mode==='add' && !S.isSample){ snapshot(); const nf=new Set(names); const kept=S.sources.filter(x=>!nf.has(x.file)); const replaced=S.sources.length-kept.length; S.sources=kept.concat(out); if(replaced) toast('같은 이름의 파일이 있어 새 파일로 바꿨습니다.'); }
-  else { S.sources=out; S.cyc.src=0; S.vp.src=0; }
+  if(mode==='add' && !S.isSample){ snapshot('파일 추가'); const nf=new Set(names); const kept=S.sources.filter(x=>!nf.has(x.file)); const replaced=S.sources.length-kept.length; S.sources=kept.concat(out); if(replaced) toast('같은 이름의 파일이 있어 새 파일로 바꿨습니다.'); }
+  else { if(S.sources.length&&!S.isSample) snapshot('새 파일로 바꾸기'); S.sources=out; S.cyc.src=0; S.vp.src=0; }
   S.isSample=false; syncFileName(); afterLoad();
 }
 function addPasted(text){
@@ -1035,7 +1063,7 @@ function persistData(){ if(!booted) return; if(!quiet){ localSavedAt=Date.now();
   dataT=setTimeout(()=>{ IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:(typeof localOwner!=='undefined'?localOwner:null)}); cloudSave(); },700); }
 
 /* ---------------- account storage (db capability, private per person) ---------------- */
-const BUILD='2026-10-10c';
+const BUILD='2026-10-10g';
 let allowEmpty=false; // set only when the person deletes all data on purpose
 const CLOUD={db:null,base:null,ready:false,status:'local',at:null,hash:null,busy:false,again:false,warned:false,log:[],uid:null,who:'',state:null};
 function clog(m){ CLOUD.log.push(new Date().toLocaleTimeString('ko-KR')+' '+m); if(CLOUD.log.length>40) CLOUD.log.shift(); console.log('[저장]',m); }
@@ -1196,23 +1224,40 @@ function afterLoad(){
 
 
 function syncFileName(){ const f=[...new Set(S.sources.map(s=>s.file))]; S.fileName=f.length?f.join(', '):''; }
-let UNDO=null;
-function snapshot(){ UNDO={sources:S.sources.map(s=>Object.assign({},s,{cells:s.cells&&s.cells.slice(),curves:s.curves&&s.curves.slice()})),cs:S.cyc.src,vs:S.vp.src,isSample:S.isSample}; }
-function undo(){ if(!UNDO) return; S.sources=UNDO.sources; S.cyc.src=UNDO.cs; S.vp.src=UNDO.vs; S.isSample=UNDO.isSample; UNDO=null; syncFileName(); afterLoad(); toast('되돌렸습니다.'); }
-function removeSources(pred,msg){ snapshot(); const curC=cycSources()[S.cyc.src], curV=vpSources()[S.vp.src];
+// undo: up to 20 steps of deleting / replacing data
+let UNDOS=[];
+function snapshot(label){ UNDOS.push({label:label||'데이터 변경',sources:S.sources.map(s=>Object.assign({},s,{cells:s.cells&&s.cells.slice(),curves:s.curves&&s.curves.slice()})),cs:S.cyc.src,vs:S.vp.src,isSample:S.isSample}); if(UNDOS.length>20) UNDOS.shift(); }
+function undo(){ const u=UNDOS.pop(); if(!u){ toast('되돌릴 작업이 없습니다.'); return; } S.sources=u.sources; S.cyc.src=u.cs; S.vp.src=u.vs; S.isSample=u.isSample; syncFileName(); afterLoad(); persistData(); toast(`되돌렸습니다: ${u.label}`+(UNDOS.length?` (남은 되돌리기 ${UNDOS.length}번)`:'')); }
+function undoBtn(){ const n=UNDOS.length, last=n?UNDOS[n-1].label:''; return `<button class="btn sm" type="button" id="bUndo" ${n?'':'disabled'} title="${n?esc('되돌리기: '+last+' (Ctrl+Z)'):'되돌릴 작업이 없습니다'}">↶ 되돌리기${n?` <span class="hint" style="font-size:11px">${n}</span>`:''}</button>`; }
+// deleting always asks first (can be turned off for this visit)
+function confirmDel(what,fn){
+  let skip=false; try{ skip=sessionStorage.getItem('cg.noAskDel')==='1'; }catch(e){}
+  if(skip){ fn(); return; }
+  modal(`<h2>삭제할까요?</h2><p style="margin:0 0 6px;word-break:break-all"><b>${esc(what)}</b></p><p class="hint">삭제한 뒤에도 <b>↶ 되돌리기</b>(또는 Ctrl+Z)로 다시 살릴 수 있습니다.</p>
+    <label class="row" style="font-size:12.5px"><input type="checkbox" id="cdSkip"> 이번 접속 동안 다시 묻지 않기</label>
+    <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn" type="button" data-close>취소</button><button class="btn danger" type="button" id="cdOk">삭제</button></div>`,m=>{
+      const rows=m.querySelectorAll('.box > .row'); if(rows.length>1) rows[rows.length-1].remove();
+      const ok=m.querySelector('#cdOk'); ok.focus();
+      ok.onclick=()=>{ if(m.querySelector('#cdSkip').checked){ try{ sessionStorage.setItem('cg.noAskDel','1'); }catch(e){} } m.remove(); fn(); };
+  });
+}
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&(e.key==='z'||e.key==='Z')){ const t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return; if(document.querySelector('.modal')) return; e.preventDefault(); undo(); } });
+function removeSources(pred,msg){ snapshot(msg.replace(/했습니다\.?$/,'')); const curC=cycSources()[S.cyc.src], curV=vpSources()[S.vp.src];
   S.sources=S.sources.filter(s=>!pred(s)); if(!S.sources.length) S.isSample=false;
   const ci=cycSources().indexOf(curC), vi=vpSources().indexOf(curV); S.cyc.src=ci>=0?ci:0; S.vp.src=vi>=0?vi:0;
   if(!S.sources.length) allowEmpty=true; syncFileName(); afterLoad(); toast(msg,{label:'되돌리기',fn:undo}); }
 function removeData(kind,group,cell){ const vs=kind==='cyc'?virtCells():virtCurves();
-  const hit=vs.filter(v=>cell!=null?(kind==='cyc'?v.name:v.cell)===cell:v.group===group); if(!hit.length) return; snapshot();
+  const hit=vs.filter(v=>cell!=null?(kind==='cyc'?v.name:v.cell)===cell:v.group===group); if(!hit.length) return; snapshot((cell!=null?'셀 삭제 ':'그룹 삭제 ')+(cell!=null?dispName(cell):group));
   const by=new Map(); hit.forEach(v=>{ if(!by.has(v._src)) by.set(v._src,new Set()); by.get(v._src).add(v._o); });
   for(const [src,set] of by){ if(kind==='cyc') src.cells=src.cells.filter(c=>!set.has(c)); else src.curves=src.curves.filter(c=>!set.has(c)); }
   if(S.sources.some(s=>!(s.cells||s.curves||[]).length)){ S.sources=S.sources.filter(s=>(s.cells||s.curves||[]).length); syncFileName(); }
   if(!S.sources.length) allowEmpty=true; afterLoad(); toast((cell!=null?'셀':'그룹')+' 데이터를 삭제했습니다.',{label:'되돌리기',fn:undo}); }
 $('#filebar').addEventListener('click',e=>{
-  const f=e.target.closest('[data-delfile]'); if(f){ const name=f.dataset.delfile; removeSources(s=>s.file===name,`"${name}"을(를) 삭제했습니다.`); return; }
-  const d=e.target.closest('[data-delsrc]'); if(d){ const src=S.sources[+d.dataset.delsrc]; if(src) removeSources(s=>s===src,`"${src.name}" 시트를 삭제했습니다.`); return; }
-  if(e.target.closest('#bClear')) removeSources(()=>true,'불러온 데이터를 모두 지웠습니다.');
+  const f=e.target.closest('[data-delfile]'); if(f){ const name=f.dataset.delfile; confirmDel(`파일 "${name}"의 데이터 전체`,()=>removeSources(s=>s.file===name,`"${name}"을(를) 삭제했습니다.`)); return; }
+  const d=e.target.closest('[data-delsrc]'); if(d){ const src=S.sources[+d.dataset.delsrc]; if(src) confirmDel(`${src.file} · "${src.name}" 시트`,()=>removeSources(s=>s===src,`"${src.name}" 시트를 삭제했습니다.`)); return; }
+  if(e.target.closest('#bClear')) confirmDel('불러온 데이터 전부 (모든 파일)',()=>removeSources(()=>true,'불러온 데이터를 모두 지웠습니다.'));
+  if(e.target.closest('#bFbTog')){ FBOPEN=!FBOPEN; try{localStorage.setItem('cellgraph.fbopen',FBOPEN?'1':'0');}catch(_){} renderFilebar(); return; }
+  if(e.target.closest('#bUndo')) undo();
   if(e.target.closest('#bProj')) exportProject();
   if(e.target.closest('#bSaveNow')) saveNow();
   if(e.target.closest('#cloudSt')) showDiag();
@@ -1263,13 +1308,15 @@ function askCex(list){
   });
 }
 /* ---------------- file bar ---------------- */
+let FBOPEN=false; try{ FBOPEN=localStorage.getItem('cellgraph.fbopen')==='1'; }catch(_){}
 function renderFilebar(){
   const fb=$('#filebar');
-  if(!S.sources.length){ fb.innerHTML='<span class="src">불러온 데이터가 없습니다. <b>새 파일로 바꾸기</b>를 누르거나 파일을 여기로 끌어다 놓으세요. </span><span style="margin-left:auto">'+cloudBadge()+'</span>'; return; }
+  if(!S.sources.length){ fb.innerHTML='<span class="src">불러온 데이터가 없습니다. <b>새 파일로 바꾸기</b>를 누르거나 파일을 여기로 끌어다 놓으세요. </span><span style="margin-left:auto" class="row">'+cloudBadge()+undoBtn()+'</span>'; return; }
   const files=[...new Set(S.sources.map(s=>s.file))];
-  fb.innerHTML=files.map(f=>`<span class="fgrp"><span class="src">${S.isSample?'예시 · ':''}<b>${esc(f)}</b><button class="x" type="button" data-delfile="${esc(f)}" title="이 파일 전체 삭제" aria-label="${esc(f)} 삭제">×</button></span>`+
-    S.sources.map((s,i)=>s.file!==f?'':`<span class="chip"><span class="k">${s.kind==='cycle'?'cycle':'profile'}</span><b>${esc(s.name)}</b> ${s.kind==='cycle'?s.cells.length+'셀':s.curves.length+'곡선'}<button class="x" type="button" data-delsrc="${i}" title="이 시트 삭제" aria-label="${esc(s.name)} 삭제">×</button></span>`).join('')+'</span>').join('')+
-    `<span style="margin-left:auto" class="row">${cloudBadge()}<button class="btn sm primary" type="button" id="bSaveNow" title="기다리지 않고 지금 바로 저장합니다">지금 저장</button><button class="btn sm" type="button" id="bProj" title="불러온 데이터와 그래프 설정(색·축·글자·이름)을 파일 하나로 저장합니다. 다른 사람이 그래프 메이커에서 이 파일을 열면 같은 그래프가 그대로 나옵니다.">작업 파일 내보내기</button><button class="btn sm" type="button" id="bClear">모두 지우기</button></span>`;
+  const tog=`<button class="btn sm fbtog" type="button" id="bFbTog" aria-expanded="${FBOPEN}" title="불러온 파일 목록 ${FBOPEN?'접기':'펼치기'}">${FBOPEN?'▾':'▸'} 불러온 파일 ${files.length}개 · 시트 ${S.sources.length}개</button>`;
+  fb.innerHTML=tog+(!FBOPEN?'':files.map(f=>`<span class="fgrp"><span class="src">${S.isSample?'예시 · ':''}<b>${esc(f)}</b><button class="x" type="button" data-delfile="${esc(f)}" title="이 파일 전체 삭제" aria-label="${esc(f)} 삭제">×</button></span>`+
+    S.sources.map((s,i)=>s.file!==f?'':`<span class="chip"><span class="k">${s.kind==='cycle'?'cycle':'profile'}</span><b>${esc(s.name)}</b> ${s.kind==='cycle'?s.cells.length+'셀':s.curves.length+'곡선'}<button class="x" type="button" data-delsrc="${i}" title="이 시트 삭제" aria-label="${esc(s.name)} 삭제">×</button></span>`).join('')+'</span>').join(''))+
+    `<span style="margin-left:auto" class="row">${cloudBadge()}<button class="btn sm primary" type="button" id="bSaveNow" title="기다리지 않고 지금 바로 저장합니다">지금 저장</button><button class="btn sm" type="button" id="bProj" title="불러온 데이터와 그래프 설정(색·축·글자·이름)을 파일 하나로 저장합니다. 다른 사람이 그래프 메이커에서 이 파일을 열면 같은 그래프가 그대로 나옵니다.">작업 파일 내보내기</button>${undoBtn()}<button class="btn sm" type="button" id="bClear">모두 지우기</button></span>`;
 }
 
 
@@ -1304,7 +1351,7 @@ function groupsOf(items,keyFn){ const m=new Map(); for(const it of items){ const
 function cycleSets(){
   const vcells=virtCells(); if(!vcells.length) return [];
   const gm=groupsOf(vcells,c=>c.group); let order=0;
-  const groups=[...gm.entries()].map(([key,cells])=>({key,cells,color:groupColor(key,order++),exp:cells[0].exp}));
+  const tk=new Set(); const groups=[...gm.entries()].map(([key,cells])=>{ const ck=colorKey(key,cells,tk); return {key,ck,cells,color:groupColor(ck,order++),exp:cells[0].exp}; });
   const on=c=>!S.cyc.off[c.name]; const gon=g=>!S.cyc.goff[g.key];
   const mk=(g,c,i,n)=>({cell:c,name:dispName(c.name),gcolor:g.color,color:cellColor(g,c.name,i,n,S.cyc.shadeMode)});
   if(S.cyc.view==='merge'){ const ser=[]; groups.filter(gon).forEach(g=>{ const cs=g.cells.filter(on); const n=g.cells.length; g.cells.forEach((c,i)=>{ if(on(c)) ser.push(mk(g,c,i,n)); }); });
@@ -1322,8 +1369,8 @@ function vpLabel(lbl){ const m=String(lbl).match(/^(\d+(?:\.\d+)?)\s*C+\s*_\s*(\
 function vpTitle(lbl){ return (S.axes.vp.title||'{label}').replace('{label}',vpLabel(lbl)); }
 function vpModel(){
   const vcurves=virtCurves(); if(!vcurves.length) return null; const src=null;
-  const gm=groupsOf(vcurves,c=>c.group); let order=0;
-  const groups=[...gm.entries()].map(([key,curves])=>{ const cells=[]; const seen=new Set(); for(const c of curves){ if(!seen.has(c.cell)){seen.add(c.cell);cells.push(c.cell);} } return {key,curves,cells,color:groupColor(key,order++)}; });
+  const gm=groupsOf(vcurves,c=>c.group); let order=0; const tk=new Set();
+  const groups=[...gm.entries()].map(([key,curves])=>{ const cells=[]; const seen=new Set(); for(const c of curves){ if(!seen.has(c.cell)){seen.add(c.cell);cells.push(c.cell);} } const ck=colorKey(key,curves,tk); return {key,ck,curves,cells,color:groupColor(ck,order++)}; });
   const labels=[]; const ls=new Set(); for(const c of vcurves){ if(!ls.has(c.label)){ls.add(c.label);labels.push(c.label);} }
   return {src,groups,labels};
 }
@@ -1413,7 +1460,7 @@ function axisBox(kind,label,open){
 }
 function groupList(T,groups){ // groups: [{key,color,cells:[names]}]
   return `<div class="groups">`+groups.map(g=>{ const gOn=!T.goff[g.key]; const n=g.cells.length;
-    return `<div class="grp" data-g="${esc(g.key)}"><div class="gh"><input type="checkbox" data-gon ${gOn?'checked':''} aria-label="그룹 표시"><button type="button" class="swbtn" data-gc style="background:${g.color}" title="그룹 색 바꾸기 (${g.color})" aria-label="그룹 색 바꾸기"></button><span class="nm" title="${esc(g.key)}">${esc(g.key)}</span><span class="cnt">${n}</span><button class="tg" type="button" data-tg aria-label="셀 목록">▾</button><button class="x" type="button" data-gdel title="이 그룹 데이터 삭제" aria-label="그룹 삭제">×</button></div>
+    return `<div class="grp" data-g="${esc(g.key)}" data-ck="${esc(g.ck||g.key)}"><div class="gh"><input type="checkbox" data-gon ${gOn?'checked':''} aria-label="그룹 표시"><button type="button" class="swbtn" data-gc style="background:${g.color}" title="그룹 색 바꾸기 (${g.color})" aria-label="그룹 색 바꾸기"></button><span class="nm" title="${esc(g.key)}">${esc(g.key)}</span><span class="cnt">${n}</span><button class="tg" type="button" data-tg aria-label="셀 목록">▾</button><button class="x" type="button" data-gdel title="이 그룹 데이터 삭제" aria-label="그룹 삭제">×</button></div>
     <div class="cells" hidden>${g.cells.map((c,i)=>`<div class="c"><input type="checkbox" data-con="${esc(c)}" ${!T.off[c]?'checked':''} aria-label="셀 표시"><button type="button" class="sw${S.cellColors&&S.cellColors[c]?' own':''}" data-cc="${esc(c)}" style="border-color:${cellColor(g,c,i,n,T.shadeMode)}" title="이 셀 색 바꾸기" aria-label="셀 색 바꾸기"></button><input type="text" data-cn="${esc(c)}" value="${esc(dispName(c))}" aria-label="범례 이름"><button class="x" type="button" data-cdel="${esc(c)}" title="이 셀 데이터 삭제" aria-label="셀 삭제">×</button></div>`).join('')}</div></div>`; }).join('')+`</div>`;
 }
 
@@ -1439,7 +1486,7 @@ function renderRail(){
   const r=$('#rail'); const isC=S.tab==='cyc';
   if(isC){
     const srcs=cycSources(); const vcells=virtCells();
-    const groups=[...groupsOf(vcells,c=>c.group).entries()].map(([key,cells],i)=>({key,color:groupColor(key,i),cells:cells.map(c=>c.name)}));
+    const tk=new Set(); const groups=[...groupsOf(vcells,c=>c.group).entries()].map(([key,cells],i)=>{ const ck=colorKey(key,cells,tk); return {key,ck,color:groupColor(ck,i),cells:cells.map(c=>c.name)}; });
     r.innerHTML=`
       <div class="fld"><span class="lbl">데이터 시트</span>${srcPicker('cyc',srcs)}</div>
       <div class="fld"><span class="lbl">보기 방식</span>${seg('cView',[['group','그룹별 (같은 색끼리)'],['merge','하나로 합쳐 비교']],S.cyc.view)}</div>
@@ -1522,11 +1569,12 @@ function bindRail(){
   segBind(S.tab==='cyc'?'cCmp':'vCmp','cmpBy',true);
   document.querySelectorAll('.grp').forEach(g=>{ const key=g.dataset.g;
     g.querySelector('[data-gon]').addEventListener('change',e=>{ if(e.target.checked) delete T.goff[key]; else T.goff[key]=1; persist(); renderSheetsOnly(); });
-    g.querySelector('[data-gc]').addEventListener('click',e=>{ openColorPop(e.currentTarget,S.colors[key],h=>{ S.colors[key]=h; persist(); renderAll(); }); });
+    const ck=g.dataset.ck||key;
+    g.querySelector('[data-gc]').addEventListener('click',e=>{ openColorPop(e.currentTarget,S.colors[ck],h=>{ S.colors[ck]=h; persist(); renderAll(); }); });
     g.querySelectorAll('[data-cc]').forEach(b=>b.addEventListener('click',e=>{ const c=b.dataset.cc; S.cellColors=S.cellColors||{};
       openColorPop(e.currentTarget,S.cellColors[c]||'',h=>{ if(h) S.cellColors[c]=h; else delete S.cellColors[c]; persist(); renderAll(); },{reset:'그룹 색 따르기 (진하기만 다르게)'}); }));
-    g.querySelector('[data-gdel]').addEventListener('click',()=>removeData(S.tab,key,null));
-    g.querySelectorAll('[data-cdel]').forEach(b=>b.addEventListener('click',()=>removeData(S.tab,key,b.dataset.cdel)));
+    g.querySelector('[data-gdel]').addEventListener('click',()=>confirmDel(`그룹 "${key}"의 데이터`,()=>removeData(S.tab,key,null)));
+    g.querySelectorAll('[data-cdel]').forEach(b=>b.addEventListener('click',()=>confirmDel(`셀 "${dispName(b.dataset.cdel)}"의 데이터`,()=>removeData(S.tab,key,b.dataset.cdel))));
     g.querySelector('[data-tg]').addEventListener('click',e=>{ const c=g.querySelector('.cells'); c.hidden=!c.hidden; e.target.textContent=c.hidden?'▾':'▴'; });
     g.querySelectorAll('[data-con]').forEach(cb=>cb.addEventListener('change',e=>{ const n=e.target.dataset.con; if(e.target.checked) delete T.off[n]; else T.off[n]=1; persist(); renderSheetsOnly(); }));
     g.querySelectorAll('[data-cn]').forEach(inp=>inp.addEventListener('input',e=>{ const n=e.target.dataset.cn; const v=e.target.value; if(v&&v!==n) S.names[n]=v; else delete S.names[n]; persist(); deb(); }));
