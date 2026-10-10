@@ -8,7 +8,7 @@ const CONFIGURED=!!(cfg&&cfg.apiKey&&cfg.projectId);
 const VER='10.12.2';
 const APPROVAL=MODE&&window.CDL_REQUIRE_APPROVAL!==false; // only people an admin approved may use the apps
 // app pages (window.CDL_GATE) stay hidden from the very first paint until the login check says this person may use them
-const GATED=APPROVAL&&CONFIGURED&&window.CDL_GATE===true;
+const GATED=APPROVAL&&CONFIGURED&&(window.CDL_GATE===true||/(graph-maker|cellport)(\.html)?$/i.test(location.pathname));
 function wait(on){ if(!GATED) return; document.documentElement.classList.toggle('fba-wait',!!on); }
 if(GATED){ const st=document.createElement('style'); st.id='fba-wait-css'; st.textContent=`html.fba-wait body>*:not(.fba-ov):not(.fba-toast){visibility:hidden!important}
 html.fba-wait body::before{content:"로그인 확인 중…";position:fixed;inset:0;display:grid;place-items:center;font:14px 'IBM Plex Sans KR','Malgun Gothic',system-ui,sans-serif;color:#7c8a93;z-index:1}`;
