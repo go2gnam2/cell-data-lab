@@ -1125,7 +1125,7 @@ function persistData(){ if(!booted) return; if(!quiet){ localSavedAt=Date.now();
   dataT=setTimeout(()=>{ IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:(typeof localOwner!=='undefined'?localOwner:null)}); cloudSave(); },700); }
 
 /* ---------------- account storage (db capability, private per person) ---------------- */
-const BUILD='2026-10-10k';
+const BUILD='2026-10-10l';
 let allowEmpty=false; // set only when the person deletes all data on purpose
 const CLOUD={db:null,base:null,ready:false,status:'local',at:null,hash:null,busy:false,again:false,warned:false,log:[],uid:null,who:'',state:null};
 function clog(m){ CLOUD.log.push(new Date().toLocaleTimeString('ko-KR')+' '+m); if(CLOUD.log.length>40) CLOUD.log.shift(); console.log('[저장]',m); }
@@ -1632,7 +1632,10 @@ function bindRail(){
   document.querySelectorAll('.grp').forEach(g=>{ const key=g.dataset.g;
     g.querySelector('[data-gon]').addEventListener('change',e=>{ if(e.target.checked) delete T.goff[key]; else T.goff[key]=1; persist(); renderSheetsOnly(); });
     const ck=g.dataset.ck||key;
-    g.querySelector('[data-gc]').addEventListener('click',e=>{ openColorPop(e.currentTarget,S.colors[ck],h=>{ S.colors[ck]=h; persist(); renderAll(); }); });
+    g.querySelector('[data-gc]').addEventListener('click',e=>{ openColorPop(e.currentTarget,S.colors[ck],h=>{ S.colors[ck]=h;
+      // a group colour applies to every cell in it: drop per-cell colours that would otherwise keep the old look
+      let n=0; if(S.cellColors) g.querySelectorAll('[data-cc]').forEach(c=>{ if(S.cellColors[c.dataset.cc]){ delete S.cellColors[c.dataset.cc]; n++; } });
+      persist(); renderAll(); if(n) toast(`셀마다 따로 정해 둔 색 ${n}개도 새 그룹 색에 맞췄습니다.`); }); });
     g.querySelectorAll('[data-cc]').forEach(b=>b.addEventListener('click',e=>{ const c=b.dataset.cc; S.cellColors=S.cellColors||{};
       openColorPop(e.currentTarget,S.cellColors[c]||'',h=>{ if(h) S.cellColors[c]=h; else delete S.cellColors[c]; persist(); renderAll(); },{reset:'그룹 색 따르기 (진하기만 다르게)'}); }));
     g.querySelector('[data-gdel]').addEventListener('click',()=>confirmDel(`그룹 "${key}"의 데이터`,()=>removeData(S.tab,key,null)));
