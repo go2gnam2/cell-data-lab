@@ -1024,7 +1024,10 @@ S.cex=Object.assign({nForm:0,lastMass:'',irange:10},saved.cex||{});
 { const d=(saved.txtDef)||store.get('cellgraph.txtdef',null); if(d){ S.txtDef=d; [['cyc','cycle'],['vp','vp']].forEach(([t,l])=>{ if(d[l]&&(!S[t].txt||!Object.keys(S[t].txt).length)) S[t].txt=JSON.parse(JSON.stringify(d[l])); }); } }
 for(const k in EXCEL_COLORS) if(!S.colors[k]) S.colors[k]=EXCEL_COLORS[k];
 const settingsObj=()=>({axDef:S.axDef||null,colors:S.colors,cellColors:S.cellColors||{},legNames:S.legNames||{},names:S.names,cyc:S.cyc,vp:Object.assign({},S.vp),axes:S.axes,cex:S.cex,txtDef:S.txtDef||null});
-let saveT=0; function persist(){clearTimeout(saveT);saveT=setTimeout(()=>{ store.set('cellgraph.v1',settingsObj()); if(typeof persistData==='function') persistData(); },300);}
+// settings (colours, axes, text, names…) are small and saved on their own: changing a colour never re-uploads the data
+let saveT=0, setAt=+(store.get('cellgraph.setAt',0))||0, setDirty=false;
+function persist(){ clearTimeout(saveT); saveT=setTimeout(()=>{ store.set('cellgraph.v1',settingsObj()); if(typeof booted!=='undefined'&&booted&&!quiet){ setAt=Date.now(); store.set('cellgraph.setAt',setAt); setDirty=true; if(CLOUD.ready&&!CLOUD.busy) setCloud('dirty'); cloudSave(); } },300); }
+function applySettings(t){ if(!t) return; if(t.colors) S.colors=t.colors; if(t.cellColors) S.cellColors=t.cellColors; if(t.axDef){ S.axDef=t.axDef; store.set(AXDEF_KEY,t.axDef); } if(t.legNames) S.legNames=t.legNames; if(t.names) S.names=t.names; if(t.cyc) Object.assign(S.cyc,t.cyc); if(t.vp) Object.assign(S.vp,t.vp); if(t.axes) S.axes=Object.assign(S.axes,t.axes); if(t.txtDef){ S.txtDef=t.txtDef; store.set(TXTDEF_KEY,t.txtDef); } if(t.cex) S.cex=Object.assign(S.cex,t.cex); store.set('cellgraph.v1',settingsObj()); }
 
 // colour belongs to the data, not to how it is grouped on screen: when a sheet-group holds one original group, that group's colour is used and changed
 function colorKey(key,items,taken){ const o=new Set(items.map(c=>(c._o&&c._o.group)||c.group)); let ck=o.size===1?[...o][0]:key; if(taken){ if(ck!==key&&taken.has(ck)) ck=key; taken.add(ck); } return ck; }
@@ -1121,18 +1124,19 @@ const IDB={ p:null,
   async set(k,v){ const db=await this.open(); if(!db) return; try{ db.transaction('kv','readwrite').objectStore('kv').put(v,k); }catch(e){} }
 };
 let dataT=0, booted=false, quiet=true, localSavedAt=0;
-function persistData(){ if(!booted) return; if(!quiet){ localSavedAt=Date.now(); if(CLOUD.ready&&!CLOUD.busy) setCloud('dirty'); } clearTimeout(dataT);
+let dataDirty=false;
+function persistData(){ if(!booted) return; if(!quiet){ localSavedAt=Date.now(); dataDirty=true; if(CLOUD.ready&&!CLOUD.busy) setCloud('dirty'); } clearTimeout(dataT);
   dataT=setTimeout(()=>{ IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:(typeof localOwner!=='undefined'?localOwner:null)}); cloudSave(); },700); }
 
 /* ---------------- account storage (db capability, private per person) ---------------- */
-const BUILD='2026-10-10l';
+const BUILD='2026-10-10m';
 let allowEmpty=false; // set only when the person deletes all data on purpose
 const CLOUD={db:null,base:null,ready:false,status:'local',at:null,hash:null,busy:false,again:false,warned:false,log:[],uid:null,who:'',state:null};
 function clog(m){ CLOUD.log.push(new Date().toLocaleTimeString('ko-KR')+' '+m); if(CLOUD.log.length>40) CLOUD.log.shift(); console.log('[저장]',m); }
 const CHUNK=180000;
 function fnv(str){ let h=0x811c9dc5; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,0x01000193); } return (h>>>0).toString(36)+'.'+str.length.toString(36); }
 function cloudBadge(){
-  const t=CLOUD.at?new Date(CLOUD.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
+  const t=(CLOUD.shown||CLOUD.at)?new Date(CLOUD.shown||CLOUD.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
   const m={local:['이 브라우저에만 저장',FBMODE?'오른쪽 위 로그인 버튼으로 로그인하면 내 계정에 저장되어 다른 컴퓨터에서도 이어서 볼 수 있습니다.':'claude.ai에 로그인한 상태로 열면 내 계정에 저장되어 다른 컴퓨터에서도 이어서 볼 수 있습니다.'],
     dirty:['저장 안 된 변경 있음 · 곧 자동 저장','몇 초 안에 자동으로 계정에 저장됩니다. 바로 저장하려면 "지금 저장"을 누르세요.'],
     loading:['계정 확인 중…',''],ready:['계정 저장 켜짐','파일을 불러오거나 바꾸면 내 계정에 자동으로 저장됩니다.'],saving:['계정에 저장 중…',''],saved:['계정에 저장됨'+(t?' · '+t:''),'내 계정에 비공개로 저장되어 있습니다. 같은 계정으로 로그인하면 어느 컴퓨터에서든 이어서 볼 수 있습니다.'],
@@ -1155,6 +1159,9 @@ async function cloudInit(){
 }
 async function cloudAttach(db,base){
   CLOUD.db=db; CLOUD.base=base; CLOUD.hash=null; CLOUD.at=null; CLOUD.state=null;
+  CLOUD.setAt=null; CLOUD.shown=null; dataDirty=false; setDirty=false;
+  // settings changed in this browser by someone else never win over this person's saved settings
+  if(store.get('cellgraph.setOwner',null)!==base){ setAt=0; store.set('cellgraph.setAt',0); store.set('cellgraph.setOwner',base); }
   clog('계정 폴더 '+base+' 확인');
   let st; try{ st=await db.doc(CLOUD.base+'/state').get(); }
   catch(e){ clog('기록 읽기 실패: '+(e&&e.code||'')+' '+(e&&e.message||'')); CLOUD.ready=false; setCloud('error'); throw e; }
@@ -1166,9 +1173,12 @@ async function cloudAttach(db,base){
       else { CLOUD.ready=false; setCloud('broken');
         toast('계정에 저장 기록이 있지만 내용을 읽지 못했습니다. 저장 상태를 눌러 확인하세요.',{label:'자세히',fn:showDiag});
         return; }
-    } else clog('이 브라우저 데이터가 더 최신이라 그대로 둡니다');
+    } else { clog('이 브라우저 데이터가 더 최신이라 그대로 둡니다'); dataDirty=true; }
   } else clog('계정에 저장된 기록이 아직 없습니다');
-  CLOUD.ready=true; setCloud(st.exists?'saved':'ready'); cloudSave(true);
+  try{ const sd=await db.doc(CLOUD.base+'/settings').get(); if(sd.exists){ const v=sd.data(); CLOUD.setAt=v.at||0;
+      if((v.at||0)>setAt&&v.json){ const q=quiet; quiet=true; applySettings(JSON.parse(v.json)); setAt=v.at; store.set('cellgraph.setAt',setAt); renderAll(); quiet=q; clog('계정에서 그래프 설정을 불러왔습니다'); } } }
+  catch(e){ clog('설정 읽기 실패: '+(e&&e.code||'')); }
+  CLOUD.ready=true; setCloud(st.exists?'saved':'ready'); if(setAt>(CLOUD.setAt||0)) setDirty=true; cloudSave(true);
 }
 function showDiag(){
   const L=[
@@ -1197,7 +1207,7 @@ function fbInit(){
     if(CLOUD.ready){ await cloudWrite(); for(let i=0;i<600&&CLOUD.busy;i++) await sleep(100); }
     await stashLocal(localOwner); });
   // leaving the page while an upload is running would cut it off: ask first, and keep a copy in this browser
-  window.addEventListener('beforeunload',e=>{ const unsaved=CLOUD.busy||(CLOUD.ready&&localSavedAt&&fnv(curJson())!==CLOUD.hash);
+  window.addEventListener('beforeunload',e=>{ const unsaved=CLOUD.busy||(CLOUD.ready&&(dataDirty||setDirty));
     if(unsaved){ IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:localOwner}); e.preventDefault(); e.returnValue=''; } });
   FBA.onUser(u=>{ onFbUser(u); });
   FBA.init();
@@ -1237,7 +1247,7 @@ async function cloudRead(m){
 function applyPayload(p,savedAt){
   quiet=true;
   S.sources=Array.isArray(p.sources)?p.sources:[]; S.isSample=!!p.isSample; S.cyc.src=p.cs||0; S.vp.src=p.vs||0; if(p.tab) S.tab=p.tab;
-  if(p.settings){ const t=p.settings; if(t.colors) S.colors=t.colors; if(t.cellColors) S.cellColors=t.cellColors; if(t.axDef){ S.axDef=t.axDef; store.set(AXDEF_KEY,t.axDef); } if(t.legNames) S.legNames=t.legNames; if(t.names) S.names=t.names; if(t.cyc) Object.assign(S.cyc,t.cyc); if(t.vp) Object.assign(S.vp,t.vp); if(t.axes) S.axes=Object.assign(S.axes,t.axes); if(t.txtDef){ S.txtDef=t.txtDef; store.set(TXTDEF_KEY,t.txtDef); } store.set('cellgraph.v1',settingsObj()); }
+  if(p.settings&&(savedAt||0)>setAt){ applySettings(p.settings); setAt=savedAt; store.set('cellgraph.setAt',setAt); }
   localSavedAt=savedAt||0; syncFileName(); afterLoad(); quiet=false;
 }
 let cloudT=0;
@@ -1245,7 +1255,7 @@ function cloudSave(now){ clearTimeout(cloudT); cloudT=setTimeout(cloudWrite,now?
 async function saveNow(){
   const b=document.getElementById('bSaveNow'); if(b){ b.disabled=true; b.textContent='저장 중…'; }
   try{
-    if(!localSavedAt&&S.sources.length) localSavedAt=Date.now();
+    if(!localSavedAt&&S.sources.length) localSavedAt=Date.now(); if(S.sources.length) dataDirty=true; if(setAt>(CLOUD.setAt||0)) setDirty=true;
     clearTimeout(dataT); await IDB.set('data',{sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,savedAt:localSavedAt,owner:(typeof localOwner!=='undefined'?localOwner:null)});
     if(CLOUD.ready){ clearTimeout(cloudT); for(let i=0;i<600&&CLOUD.busy;i++) await sleep(100); await cloudWrite(); for(let i=0;i<600&&CLOUD.busy;i++) await sleep(100);
       if(CLOUD.status==='saved') toast('계정에 저장했습니다.'); else toast('이 브라우저에는 저장했지만 계정 저장은 실패했습니다. 잠시 후 다시 눌러 주세요.'); }
@@ -1255,25 +1265,34 @@ async function saveNow(){
 function curJson(){ return JSON.stringify({v:1,sources:S.sources,isSample:S.isSample,cs:S.cyc.src,vs:S.vp.src,tab:S.tab,settings:settingsObj()}); }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function cloudWrite(){
-  if(!CLOUD.ready||!localSavedAt) return;
+  if(!CLOUD.ready) return;
   if(CLOUD.busy){ CLOUD.again=true; return; }
-  if(!S.sources.length&&!allowEmpty&&CLOUD.state&&CLOUD.state.bytes>2000){ clog('빈 화면은 계정 데이터에 덮어쓰지 않습니다'); setCloud('saved'); return; }
-  const json=curJson();
-  const hash=fnv(json); if(hash===CLOUD.hash){ setCloud('saved'); return; }
-  CLOUD.busy=true; setCloud('saving');
+  CLOUD.busy=true;
   try{
-    const zip=new JSZip(); zip.file('d.json',json); const b64=await zip.generateAsync({type:'base64',compression:'DEFLATE',compressionOptions:{level:6}});
-    const gen=Date.now().toString(36)+Math.random().toString(36).slice(2,6); const n=Math.max(1,Math.ceil(b64.length/CHUNK));
-    for(let i=0;i<n;i++) await CLOUD.db.doc(`${CLOUD.base}/c_${gen}_${i}`).set({g:gen,i,s:b64.slice(i*CHUNK,(i+1)*CHUNK)});
-    const at=localSavedAt; await CLOUD.db.doc(CLOUD.base+'/state').set({v:1,gen,n,hash,savedAt:at,bytes:b64.length});
-    allowEmpty=false; CLOUD.hash=hash; CLOUD.state={savedAt:at,n,bytes:b64.length,gen,hash}; setCloud('saved',at); clog('계정에 저장 완료 · 조각 '+n+'개 · '+Math.round(b64.length/1024)+'KB');
-    // remove pieces of older saves
-    try{ const old=await CLOUD.db.collection(CLOUD.base).where('g','!=',gen).get(); for(const d of old.docs){ if(d.id!=='state'&&d.id.startsWith('c_')) await CLOUD.db.doc(CLOUD.base+'/'+d.id).delete(); } }catch(e){ console.warn('cleanup',e); }
+    if(setDirty){ setDirty=false; const at=setAt||Date.now(); const json=JSON.stringify(settingsObj());
+      if(json.length<900000){ try{ setCloud('saving'); await CLOUD.db.doc(CLOUD.base+'/settings').set({v:1,at,json}); CLOUD.setAt=at; clog('그래프 설정 저장 · '+Math.round(json.length/1024)+'KB'); }
+        catch(e){ setDirty=true; throw e; } } }
+    if(localSavedAt&&(dataDirty||!CLOUD.hash)) await writeData();
+    CLOUD.shown=Date.now(); setCloud('saved');
   }catch(e){ console.warn('cloud save',e); clog('저장 실패: '+(e&&e.code||'')+' '+(e&&e.message||''));
     if(e&&e.code==='quota_exceeded'){ setCloud('full'); if(!CLOUD.warned){ CLOUD.warned=true; toast('계정 저장 공간이 부족해 이 브라우저에만 저장했습니다. 쓰지 않는 파일을 지우면 다시 계정에 저장됩니다.'); } }
     else if(e&&(e.code==='revoked'||e.code==='not_granted'||e.code==='invalid_argument'||e.code==='permission-denied')){ CLOUD.ready=false; setCloud('error'); if(!CLOUD.warned){ CLOUD.warned=true; toast('계정에 저장할 권한이 없습니다. 관리자에게 알려 주세요.',{label:'자세히',fn:showDiag}); } }
     else { setCloud('error'); setTimeout(()=>cloudSave(),15000); }
   }finally{ CLOUD.busy=false; if(CLOUD.again){ CLOUD.again=false; cloudSave(); } }
+}
+async function writeData(){
+  if(!S.sources.length&&!allowEmpty&&CLOUD.state&&CLOUD.state.bytes>2000){ dataDirty=false; clog('빈 화면은 계정 데이터에 덮어쓰지 않습니다'); return; }
+  dataDirty=false; const at=localSavedAt;
+  const json=curJson(); const hash=fnv(json); if(hash===CLOUD.hash) return;
+  setCloud('saving');
+  try{
+    const zip=new JSZip(); zip.file('d.json',json); const b64=await zip.generateAsync({type:'base64',compression:'DEFLATE',compressionOptions:{level:6}});
+    const gen=Date.now().toString(36)+Math.random().toString(36).slice(2,6); const n=Math.max(1,Math.ceil(b64.length/CHUNK));
+    for(let i=0;i<n;i++) await CLOUD.db.doc(`${CLOUD.base}/c_${gen}_${i}`).set({g:gen,i,s:b64.slice(i*CHUNK,(i+1)*CHUNK)});
+    await CLOUD.db.doc(CLOUD.base+'/state').set({v:1,gen,n,hash,savedAt:at,bytes:b64.length});
+    allowEmpty=false; CLOUD.hash=hash; CLOUD.at=at; CLOUD.state={savedAt:at,n,bytes:b64.length,gen,hash}; clog('계정에 데이터 저장 완료 · 조각 '+n+'개 · '+Math.round(b64.length/1024)+'KB');
+    try{ const old=await CLOUD.db.collection(CLOUD.base).where('g','!=',gen).get(); for(const d of old.docs){ if(d.id!=='state'&&d.id.startsWith('c_')) await CLOUD.db.doc(CLOUD.base+'/'+d.id).delete(); } }catch(e){ console.warn('cleanup',e); }
+  }catch(e){ dataDirty=true; throw e; }
 }
 
 function afterLoad(){
